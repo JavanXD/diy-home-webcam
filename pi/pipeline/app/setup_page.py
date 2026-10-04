@@ -12,7 +12,7 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   <select id="cameraPick"></select>
   <label for="displayName">Display name</label>
   <input id="displayName" type="text" maxlength="80" autocomplete="off">
-  <p class="field-help">Public JPEG overlay and LAN label (e.g. Home Assistant). Example: Example Webcam.</p>
+  <p class="field-help">Public JPEG overlay and LAN label (e.g. Home Assistant). Example: Shed webcam.</p>
   <label for="timezone">Timezone</label>
   <input id="timezone" type="text" autocomplete="off" placeholder="Europe/Berlin">
   <div class="row">
