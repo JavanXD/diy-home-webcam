@@ -11,7 +11,7 @@ Flash, first boot, and setup AP: **[docs/diy/BUILD.md](../docs/diy/BUILD.md)** (
 | Setting | Value |
 |---------|--------|
 | Hostname | `home-webcam` (`image/config`) |
-| SSH user / temp password | `pi` / `webcam-setup` — change after first boot |
-| SSH | Prefer Imager **public key**; do not bake private keys into the image |
+| SSH | Prefer Imager **public key**; password auth disabled on first boot when `authorized_keys` exists |
+| Credentials file | `/boot/firmware/webcam-setup.txt` — unique AP PSK + emergency SSH password (written on first boot) |
 | R2 / AWS keys | Empty `/etc/webcam-pipeline/env` only |
-| Setup AP | `Webcam-Setup` / documented temp password — only when no home Wi-Fi profile |
+| Setup AP | SSID `Webcam-Setup`, unique per-device PSK — only when no home Wi-Fi profile |

@@ -14,6 +14,7 @@ from app.wifi_nm import (  # noqa: E402
     SETUP_AP_CONNECTION,
     SETUP_AP_SSID,
     home_wifi_profile_names,
+    read_setup_ap_password,
     should_start_setup_ap,
     stop_setup_ap,
     wifi_connect,
@@ -200,12 +201,42 @@ def test_wifi_status_flags_setup_ap(tmp_path):
             return 0, "*:Webcam-Setup\n", ""
         return 0, "", ""
 
-    status = wifi_status(runner=run, last_lan_path=tmp_path / "last-lan.json")
+    card = tmp_path / "webcam-setup.txt"
+    card.write_text("SSID=Webcam-Setup\nPASSWORD=abcd1234efgh5678\n", encoding="utf-8")
+    env = tmp_path / "setup-ap.env"
+    env.write_text("SETUP_AP_PASSWORD=abcd1234efgh5678\n", encoding="utf-8")
+
+    # Patch readers via env + card paths by monkeypatching os.environ and paths
+    import app.wifi_nm as wifi_nm
+
+    orig = wifi_nm.read_setup_ap_password
+
+    def _read(**_kwargs):
+        return orig(env_path=env, card_paths=[card])
+
+    wifi_nm.read_setup_ap_password = _read  # type: ignore[method-assign]
+    try:
+        status = wifi_status(runner=run, last_lan_path=tmp_path / "last-lan.json")
+    finally:
+        wifi_nm.read_setup_ap_password = orig  # type: ignore[method-assign]
+
     assert status["setup_ap"] is True
     assert status["setup_ap_ssid"] == SETUP_AP_SSID
     assert "setup/ui" in status["setup_ap_url"]
+    assert status["setup_ap_password"] == "abcd1234efgh5678"
     assert status["mdns"].endswith(".local")
     assert status["last_lan_ipv4"] == ""
+
+
+def test_read_setup_ap_password_skips_auto_and_legacy(tmp_path):
+    env = tmp_path / "env"
+    env.write_text("SETUP_AP_PASSWORD=auto\n", encoding="utf-8")
+    assert read_setup_ap_password(env_path=env, card_paths=[]) == ""
+    env.write_text("SETUP_AP_PASSWORD=webcam-setup\n", encoding="utf-8")
+    assert read_setup_ap_password(env_path=env, card_paths=[]) == ""
+    card = tmp_path / "card.txt"
+    card.write_text("PASSWORD=deadbeefcafebabe\n", encoding="utf-8")
+    assert read_setup_ap_password(env_path=env, card_paths=[card]) == "deadbeefcafebabe"
 
 
 def test_stop_setup_ap_idempotent():

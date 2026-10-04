@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import sys
 import threading
+import urllib.error
 import urllib.request
 from datetime import datetime
 from http.server import ThreadingHTTPServer
@@ -66,6 +67,34 @@ def test_build_uses_ffmpeg_and_marks_the_file_fresh(tmp_path: Path):
     assert seen and seen[0][0] == "ffmpeg"
     assert archive.describe("2026-10-01")["mp4"] is True
     assert archive.describe("2026-10-01")["frames"] == 2
+
+
+def test_delete_day_removes_frames_and_exports_only(tmp_path: Path):
+    archive = TimelapseArchive(tmp_path / "tl", timezone="UTC")
+    keep = archive.frames / "2026-09-02"
+    drop = archive.frames / "2026-09-01"
+    _jpeg(keep / "120000.jpg", (1, 1, 1))
+    _jpeg(drop / "120000.jpg", (2, 2, 2))
+    _jpeg(drop / "120200.jpg", (3, 3, 3))
+    archive.exports.mkdir(parents=True, exist_ok=True)
+    (archive.exports / "2026-09-01.mp4").write_bytes(b"mp4")
+    (archive.exports / "2026-09-01.mp4.stamp").write_text("stamp", encoding="utf-8")
+    (archive.exports / "2026-09-01.gif").write_bytes(b"gif")
+    (archive.exports / "2026-09-02.mp4").write_bytes(b"keep")
+    result = archive.delete_day("2026-09-01")
+    assert result["ok"] is True
+    assert result["deleted"] == "2026-09-01"
+    assert not drop.exists()
+    assert not (archive.exports / "2026-09-01.mp4").exists()
+    assert not (archive.exports / "2026-09-01.mp4.stamp").exists()
+    assert not (archive.exports / "2026-09-01.gif").exists()
+    assert keep.is_dir()
+    assert (archive.exports / "2026-09-02.mp4").read_bytes() == b"keep"
+    try:
+        archive.delete_day("../2026-09-02")
+        raise AssertionError("expected invalid day")
+    except Exception as exc:
+        assert "day must be YYYY-MM-DD" in str(exc)
 
 
 def test_prune_drops_oldest_days_when_over_max_bytes(tmp_path: Path):
@@ -137,6 +166,10 @@ def test_timelapse_page_lists_a_day_and_does_not_upload(tmp_path: Path):
         assert "tl-day-list" in html
         assert "tl-day-row" in html
         assert "Newest first" in html
+        assert "Delete day…" in html
+        assert "lanUi.confirm" in html
+        assert "/delete" in html
+        assert "confirm: true" in html
         # Storage + export tip on archive card; day card has actions only.
         assert html.index("tl-storage") < html.index("id=\"tl-meta\"")
         assert html.index("Neither file is uploaded") < html.index("id=\"tl-meta\"")
@@ -182,5 +215,34 @@ def test_timelapse_page_lists_a_day_and_does_not_upload(tmp_path: Path):
             assert resp.headers.get("Content-Disposition", "").startswith("attachment;")
             assert "timelapse-2026-10-01.gif" in (resp.headers.get("Content-Disposition") or "")
             assert resp.headers.get_content_type() == "image/gif"
+        # Delete without confirm is rejected; with confirm removes only that day.
+        bad = urllib.request.Request(
+            f"http://127.0.0.1:{port}/timelapse/2026-10-01/delete?camera=shed",
+            data=b"{}",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        try:
+            urllib.request.urlopen(bad)
+            raise AssertionError("expected 400 without confirm")
+        except urllib.error.HTTPError as exc:
+            assert exc.code == 400
+            assert b"confirm" in exc.read()
+        other = archive.frames / "2026-10-02"
+        _jpeg(other / "090000.jpg", (1, 1, 1))
+        good = urllib.request.Request(
+            f"http://127.0.0.1:{port}/timelapse/2026-10-01/delete?camera=shed",
+            data=json.dumps({"confirm": True}).encode(),
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(good) as resp:
+            deleted = json.loads(resp.read().decode())
+        assert deleted["ok"] is True
+        assert deleted["deleted"] == "2026-10-01"
+        assert not day.exists()
+        assert not (archive.exports / "2026-10-01.gif").exists()
+        assert other.is_dir()
+        assert any(item["day"] == "2026-10-02" for item in deleted["days"])
     finally:
         server.shutdown()

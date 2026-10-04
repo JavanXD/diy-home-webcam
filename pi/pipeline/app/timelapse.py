@@ -222,17 +222,46 @@ class TimelapseArchive:
         )
         return days[0] if days else None
 
-    def _delete_day(self, day: str) -> None:
+    def delete_day(self, day: str) -> dict[str, Any]:
+        """Remove one day's frames + rendered exports. Safe day id only (YYYY-MM-DD)."""
+        day = _require_day(day)
+        if _building(self.root, day):
+            raise TimelapseError("cannot delete while a video is building for this day")
         day_dir = self.frames / day
+        existed = day_dir.is_dir() or any(
+            (self.exports / f"{day}.{kind}").is_file() for kind in ("mp4", "gif")
+        )
+        self._delete_day(day)
+        _clear_jobs(self.root, day)
+        return {
+            "ok": True,
+            "deleted": day,
+            "existed": existed,
+            "local_only": True,
+            "storage": self.storage_info(),
+        }
+
+    def _delete_day(self, day: str) -> None:
+        day = _require_day(day)
+        # Paths are only under this archive root; day is validated YYYY-MM-DD (no .. / slashes).
+        day_dir = (self.frames / day).resolve()
+        frames_root = self.frames.resolve()
+        if day_dir != frames_root / day:
+            raise TimelapseError("invalid day path")
         if day_dir.is_dir():
             shutil.rmtree(day_dir, ignore_errors=True)
         if self.exports.is_dir():
+            exports_root = self.exports.resolve()
             for kind in ("mp4", "gif"):
-                export = self.exports / f"{day}.{kind}"
+                export = (self.exports / f"{day}.{kind}").resolve()
+                if export.parent != exports_root:
+                    continue
                 export.unlink(missing_ok=True)
                 Path(str(export) + ".stamp").unlink(missing_ok=True)
             for leftover in self.exports.glob(f".work-{day}-*"):
-                shutil.rmtree(leftover, ignore_errors=True)
+                work = leftover.resolve()
+                if work.parent == exports_root:
+                    shutil.rmtree(work, ignore_errors=True)
 
 
 def request_build(archive: TimelapseArchive, day: str, kind: str) -> dict[str, Any]:
@@ -395,6 +424,13 @@ def job_error(root: Path, day: str) -> str:
             if _root == str(root) and job_day == day and job.get("state") == "error":
                 return str(job.get("error") or "")
     return ""
+
+
+def _clear_jobs(root: Path, day: str) -> None:
+    with _jobs_lock:
+        for key in list(_jobs):
+            if key[0] == str(root) and key[1] == day:
+                _jobs.pop(key, None)
 
 
 def _write_bytes(path: Path, data: bytes) -> None:

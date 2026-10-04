@@ -1,8 +1,29 @@
 # Security
 
-## Report a problem
+## Report a vulnerability
 
-Open a private GitHub security advisory on this repository, or email **mail@javan.de**. Do not file a public issue that includes live hostnames, tokens, or unpublished images.
+Open a **private GitHub security advisory** on this repository (or on [`JavanXD/diy-home-webcam`](https://github.com/JavanXD/diy-home-webcam) for the public DIY tree), or email **mail@javan.de**.
+
+Do not file a public issue that includes live hostnames, tokens, unpublished images, or private frames.
+
+## Updates
+
+- **Ops / this checkout:** pull or sync the repo, then provision/deploy on the Pi (`pi/provision.sh` / `pi/pipeline/scripts/deploy.sh`), or re-flash a newer image.
+- **DIY flashable image:** new builds from GitHub Actions **Build Pi image**; download `home-webcam-*.img.xz` from [diy-home-webcam Releases](https://github.com/JavanXD/diy-home-webcam/releases) when published, or rebuild locally with `./image/build-with-pi-gen.sh`.
+- **OS packages:** `sudo apt update && sudo apt full-upgrade` on a schedule you trust.
+- **Support window:** this is a maintained personal/DIY project, not a commercial product SKU — security fixes land in git as they are found; there is no multi-year guaranteed support contract.
+
+## EU Cyber Resilience Act / RED IoT — alignment goals
+
+This section describes **practical DIY alignment goals** with the spirit of the EU Cyber Resilience Act and radio/IoT product expectations (unique defaults, disclosure, updateability). It is **not** a conformity assessment, CE marking claim, or legal advice. The project is not a certified commercial IoT product.
+
+| Goal | What we do |
+|------|------------|
+| No universal default password | Setup AP PSK is **unique per device** (derived from board serial / machine-id). Written to `/boot/firmware/webcam-setup.txt` and shown on Setup UI while the AP is up — not a shared README password. |
+| Vulnerability disclosure | Contact above (private advisory or mail@javan.de). |
+| Update expectation | Git pull / re-flash / Releases + apt; honest DIY support window (above). |
+| Secure by default | Setup AP auto-disables after home Wi-Fi join; Imager **SSH public key** preferred; password SSH disabled on first boot when `authorized_keys` is present; unique emergency SSH password on the boot card when keys are absent. |
+| Trusted LAN UI | No mandatory login on `:8080` / `:8090` — the home network is the trust boundary (CRA focus here is defaults + updateability, not LAN auth on a local appliance). |
 
 ## How this appliance is meant to be exposed
 
@@ -20,7 +41,7 @@ Do not port-forward `:8080` or `:8090` to the internet. The maintenance switch a
 
 R2 credentials belong in `/etc/webcam-pipeline/env` on the Pi (mode `640`, owner `root`, group `webcam`). The template is [`examples/pi/r2.env`](examples/pi/r2.env). Never commit keys, SSH private keys, or Wi-Fi PSKs. The Setup UI reports whether a secret is set; it never returns the secret value.
 
-The optional first-boot setup AP (`Webcam-Setup`) uses a **published temporary WPA2 password** (`webcam-setup` in the DIY docs). Anyone nearby who knows it can open Setup and change Wi-Fi. It starts only when no home Wi-Fi profile exists; a successful Setup join tears it down and writes `/var/lib/webcam-pipeline/setup-ap.disabled`. Operator forever-off: `/etc/webcam-pipeline/setup-ap.disabled`. Flashable images do not bake R2 keys.
+The optional first-boot setup AP (`Webcam-Setup`) uses a **per-device WPA2 password** (see `/boot/firmware/webcam-setup.txt`). It starts only when no home Wi-Fi profile exists; a successful Setup join tears it down and writes `/var/lib/webcam-pipeline/setup-ap.disabled`. Operator forever-off: `/etc/webcam-pipeline/setup-ap.disabled`. Flashable images do not bake R2 keys.
 
 ## Privacy masks
 

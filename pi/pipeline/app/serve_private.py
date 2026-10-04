@@ -2748,6 +2748,26 @@ def make_handler(
                     self._json(400, {"error": str(exc)})
                 return
 
+            if path.startswith("/timelapse/") and path.endswith("/delete"):
+                parts = [part for part in path.split("/") if part]
+                try:
+                    if len(parts) != 3 or parts[0] != "timelapse" or parts[2] != "delete":
+                        raise TimelapseError("not found")
+                    body = self._read_json_body(length) if length else {}
+                    require_confirm(body)
+                    archive = self._timelapse_archive(cam)
+                    result = archive.delete_day(parts[1])
+                    result["camera"] = cam
+                    result["days"] = archive.list_days()
+                    self._json(200, result)
+                except SystemOpsError as exc:
+                    self._json(400, {"error": str(exc)})
+                except TimelapseError as exc:
+                    self._json(400, {"error": str(exc)})
+                except ValueError as exc:
+                    self._json(400, {"error": str(exc)})
+                return
+
             if path == "/timelapse/settings":
                 try:
                     body = self._read_json_body(length) if length else {}

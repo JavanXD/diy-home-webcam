@@ -135,7 +135,7 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     Note the <strong>Find this Pi</strong> card (IPv4 / hostname) before you join home Wi-Fi.
     Scan, pick your home Wi-Fi, enter its password, then tap <strong>Join Wi-Fi</strong>.
     The Pi leaves Webcam-Setup and joins home; your phone must switch back to home Wi-Fi afterward.
-    Temporary AP password (printed in the DIY build doc): <code>webcam-setup</code>.
+    <span id="ap-psk-line" hidden>This device’s AP password (also in <code>/boot/firmware/webcam-setup.txt</code>): <code id="ap-psk"></code></span>
   </div>
   <p class="field-help">The password is sent once to NetworkManager and is not written into this project. Joining a different network can drop this page.</p>
   <div class="actions">
@@ -260,6 +260,17 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
       return;
     }}
     if (apHelp) apHelp.hidden = !status.setup_ap;
+    var pskLine = document.getElementById("ap-psk-line");
+    var pskEl = document.getElementById("ap-psk");
+    if (pskLine && pskEl) {{
+      if (status.setup_ap && status.setup_ap_password) {{
+        pskEl.textContent = status.setup_ap_password;
+        pskLine.hidden = false;
+      }} else {{
+        pskEl.textContent = "";
+        pskLine.hidden = true;
+      }}
+    }}
     if (status.setup_ap) {{
       var apDetail = [
         "temporary setup AP",

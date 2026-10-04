@@ -18,7 +18,7 @@ echo "==> install webcam setup AP helper"
 
 mkdir -p "${INSTALL_ROOT}/pi/scripts" /etc/webcam-pipeline
 # When ROOT already is INSTALL_ROOT (live /opt tree), chmod in place — do not install onto self.
-for f in webcam-setup-ap.sh webcam-captive-redirect.py; do
+for f in webcam-setup-ap.sh webcam-device-credentials.sh webcam-captive-redirect.py; do
   src="${ROOT}/pi/scripts/$f"
   dst="${INSTALL_ROOT}/pi/scripts/$f"
   if [[ "$(readlink -f "$src" 2>/dev/null || echo "$src")" == "$(readlink -f "$dst" 2>/dev/null || echo "$dst")" ]]; then
@@ -33,6 +33,21 @@ if [[ ! -f "$ENV_DST" ]]; then
   echo "    installed $ENV_DST"
 else
   echo "    keeping existing $ENV_DST"
+  # Migrate shared default → auto so the next AP start (if any) gets a unique PSK.
+  # Does not start the AP; configured Pis (home Wi-Fi / disable markers) stay untouched.
+  if grep -qE '^[[:space:]]*SETUP_AP_PASSWORD=webcam-setup[[:space:]]*$' "$ENV_DST"; then
+    tmp="$(mktemp)"
+    awk '
+      /^[[:space:]]*SETUP_AP_PASSWORD=webcam-setup[[:space:]]*$/ {
+        print "SETUP_AP_PASSWORD=auto"
+        next
+      }
+      { print }
+    ' "$ENV_DST" >"$tmp"
+    cat "$tmp" >"$ENV_DST"
+    rm -f "$tmp"
+    echo "    migrated SETUP_AP_PASSWORD=webcam-setup → auto (unique PSK on next AP start only)"
+  fi
 fi
 
 install -m 644 "${UNIT_DIR}/webcam-setup-ap.service" /etc/systemd/system/webcam-setup-ap.service

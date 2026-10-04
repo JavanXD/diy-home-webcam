@@ -49,7 +49,7 @@ Public live follows sunrise/sunset (with offsets), fixed clock times, or always-
 
 ### Also worth knowing
 
-- **Flashable image + setup AP** — GitHub Actions builds a Lite image; if Imager skipped Wi-Fi, join `Webcam-Setup` and finish on `:8090/setup/ui` ([docs/diy/BUILD.md](docs/diy/BUILD.md))
+- **Flashable image + setup AP** — GitHub Actions builds a Lite image; if Imager skipped Wi-Fi, join `Webcam-Setup` with the **unique** PSK from `/boot/firmware/webcam-setup.txt` and finish on `:8090/setup/ui` ([docs/diy/BUILD.md](docs/diy/BUILD.md))
 - **Wartungsbild** — maintenance placeholder for the public livestream while capture keeps running; private stays on raw
 - **S3-compatible publish** — Cloudflare R2 preset, custom S3 (MinIO / AWS / Wasabi / B2), local outbox, or off — public object URL / hotlink without a Worker; branded Worker page optional — Setup UI + [docs/diy/PUBLISH.md](docs/diy/PUBLISH.md)
 - **Find the Pi after setup AP** — Setup UI shows hostname, `*.local`, and current / last LAN IPv4 (Android often needs the IP, not mDNS)

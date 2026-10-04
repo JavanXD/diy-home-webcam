@@ -97,6 +97,8 @@ def wifi_status(*, runner: Runner | None = None, last_lan_path: Path | None = No
         remember_last_lan_ipv4(home_ipv4, path=last_path)
     last_lan = read_last_lan_ipv4(path=last_path)
     primary_for_urls = home_ipv4 or ("" if ap_active else ipv4) or last_lan
+    # Only while on the setup AP (caller already knows the PSK to join).
+    ap_password = read_setup_ap_password() if ap_active else ""
     return {
         "available": True,
         "device": wifi.get("device") or "",
@@ -107,6 +109,7 @@ def wifi_status(*, runner: Runner | None = None, last_lan_path: Path | None = No
         "setup_ap_ssid": SETUP_AP_SSID if ap_active else "",
         "setup_ap_gateway": SETUP_AP_GATEWAY if ap_active else "",
         "setup_ap_url": f"http://{SETUP_AP_GATEWAY}:8090/setup/ui" if ap_active else "",
+        "setup_ap_password": ap_password,
         **identity,
         "addresses": addresses,
         "last_lan_ipv4": last_lan,
@@ -274,6 +277,47 @@ def remember_last_lan_ipv4(ipv4: str, *, path: Path | None = None) -> None:
         target.write_text(json.dumps({"ipv4": ip}, indent=2) + "\n", encoding="utf-8")
     except OSError:
         return
+
+
+def read_setup_ap_password(
+    *,
+    env_path: Path | None = None,
+    card_paths: list[Path] | None = None,
+) -> str:
+    """Read the unique setup-AP PSK from env or boot card. Empty if unset/auto."""
+    paths = card_paths or [
+        Path("/var/lib/webcam-pipeline/webcam-setup.txt"),
+        Path("/boot/firmware/webcam-setup.txt"),
+        Path("/boot/webcam-setup.txt"),
+    ]
+    for path in paths:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        for line in text.splitlines():
+            line = line.strip()
+            if line.startswith("PASSWORD=") and not line.startswith("PASSWORD=#"):
+                value = line.split("=", 1)[1].strip()
+                if value and value.lower() not in {"auto", "generate", "webcam-setup"}:
+                    return value
+    env = env_path or Path(os.environ.get("WEBCAM_SETUP_AP_ENV", "/etc/webcam-setup-ap.env"))
+    try:
+        text = env.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#") or "=" not in stripped:
+            continue
+        key, _, value = stripped.partition("=")
+        if key.strip() != "SETUP_AP_PASSWORD":
+            continue
+        value = value.strip().strip("'\"")
+        if value and value.lower() not in {"auto", "generate", "webcam-setup"}:
+            return value
+        return ""
+    return ""
 
 
 def setup_ap_active(*, runner: Runner | None = None) -> bool:

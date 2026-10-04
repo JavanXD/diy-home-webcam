@@ -8,8 +8,10 @@ COMPRESSION_LEVEL='6'
 ENABLE_SSH=1
 TARGET_HOSTNAME='home-webcam'
 FIRST_USER_NAME='pi'
-# Temporary DIY default (change after first boot). Required by pi-gen when
-# DISABLE_FIRST_BOOT_USER_RENAME=1. Prefer SSH public key via Imager; never bake
+# Bootstrap only until image first-boot rotates a unique per-device password
+# (written to /boot/firmware/webcam-setup.txt). Required by pi-gen when
+# DISABLE_FIRST_BOOT_USER_RENAME=1. Prefer Imager SSH public key; when
+# authorized_keys is present, first-boot disables password SSH. Never bake
 # private keys or R2 credentials into the image (see docs/diy/SECURITY.md).
 FIRST_USER_PASS='webcam-setup'
 DISABLE_FIRST_BOOT_USER_RENAME=1

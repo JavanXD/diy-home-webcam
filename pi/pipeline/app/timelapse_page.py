@@ -23,6 +23,7 @@ def timelapse_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     <a id="tl-dl-mp4" class="btn ghost" hidden download>Download video</a>
     <button type="button" id="tl-gif-btn" class="ghost" disabled>Make GIF</button>
     <a id="tl-dl-gif" class="btn ghost" hidden download>Download GIF</a>
+    <button type="button" id="tl-delete" class="danger" disabled>Delete day…</button>
   </div>
 """
     storage_card = f"""
@@ -180,16 +181,34 @@ def timelapse_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     var meta = document.getElementById("tl-meta");
     var mp4 = document.getElementById("tl-mp4");
     var gifBtn = document.getElementById("tl-gif-btn");
+    var delBtn = document.getElementById("tl-delete");
     var busy = info.building === "mp4" || info.building === "gif";
     meta.textContent = info.frames
       ? (info.frames + " frames, " + info.first + "–" + info.last + (busy ? ". Making the " + info.building + "…" : "."))
       : "No frames for this day.";
     mp4.disabled = busy || info.frames < 2;
     gifBtn.disabled = busy || info.frames < 2;
+    delBtn.disabled = busy || !info.day || !(info.frames > 0 || info.mp4 || info.gif);
     mp4.textContent = info.mp4 ? "Rebuild video" : "Make video";
     gifBtn.textContent = info.gif ? "Rebuild GIF" : "Make GIF";
     setMedia(info);
     if (busy) startPoll(); else stopPoll();
+  }}
+  function clearDayView() {{
+    day = "";
+    stopPoll();
+    document.getElementById("tl-meta").textContent = "Pick a day. Frames are saved about every 2 minutes while the public schedule is online, then played at {MP4_FPS} frames per second — a full day is about half a minute.";
+    document.getElementById("tl-mp4").disabled = true;
+    document.getElementById("tl-gif-btn").disabled = true;
+    document.getElementById("tl-delete").disabled = true;
+    document.getElementById("tl-mp4").textContent = "Make video";
+    document.getElementById("tl-gif-btn").textContent = "Make GIF";
+    document.getElementById("tl-stage").hidden = true;
+    document.getElementById("tl-dl-mp4").hidden = true;
+    document.getElementById("tl-dl-gif").hidden = true;
+    var video = document.getElementById("tl-video");
+    video.removeAttribute("data-src");
+    video.removeAttribute("src");
   }}
   function formatDayLabel(iso) {{
     var parts = String(iso || "").split("-");
@@ -297,6 +316,33 @@ def timelapse_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   }}
   document.getElementById("tl-mp4").addEventListener("click", function () {{ build("mp4"); }});
   document.getElementById("tl-gif-btn").addEventListener("click", function () {{ build("gif"); }});
+  document.getElementById("tl-delete").addEventListener("click", async function () {{
+    if (!day) return;
+    var label = formatDayLabel(day);
+    if (!window.lanUi.confirm(
+      "Delete day " + label + "? All frames and rendered videos for this day will be removed. Other days are kept. This cannot be undone."
+    )) return;
+    var btn = document.getElementById("tl-delete");
+    window.lanUi.clearBanner("tl-banner");
+    window.lanUi.setBusy(btn, true, "Deleting…");
+    try {{
+      var result = await window.lanUi.fetchJson("/timelapse/" + day + "/delete" + camQuery(), {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ confirm: true }})
+      }});
+      paintStorage(result.storage);
+      clearDayView();
+      show("ok", "Day deleted", label + " removed from this Pi");
+      var next = (result.days && result.days[0] && result.days[0].day) || undefined;
+      await loadDays(next);
+      if (!next) clearDayView();
+    }} catch (e) {{
+      show("bad", "Could not delete day", e && e.message ? e.message : String(e));
+    }} finally {{
+      window.lanUi.setBusy(btn, false);
+    }}
+  }});
   document.getElementById("tl-save-settings").addEventListener("click", async function () {{
     var btn = document.getElementById("tl-save-settings");
     window.lanUi.clearBanner("tl-banner");

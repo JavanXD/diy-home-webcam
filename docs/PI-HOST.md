@@ -173,7 +173,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 
 **Not in git:** WiFi SSID / password (Imager or on-device NetworkManager / netplan). Never commit PSKs.
 
-**Setup AP (DIY first-boot):** `pi/scripts/webcam-setup-ap.sh` + `webcam-setup-ap.service` start SSID `Webcam-Setup` only when **no** home Wi-Fi client profile exists, Wi-Fi is not associated, and ethernet has no IPv4. Configured boards keep working and do not enter AP mode. Status: `sudo …/webcam-setup-ap.sh status`. Disable: `sudo touch /etc/webcam-pipeline/setup-ap.disabled`. Phone flow: [docs/diy/BUILD.md](diy/BUILD.md).
+**Setup AP (DIY first-boot):** `pi/scripts/webcam-setup-ap.sh` + `webcam-setup-ap.service` start SSID `Webcam-Setup` only when **no** home Wi-Fi client profile exists, Wi-Fi is not associated, and ethernet has no IPv4. The WPA2 PSK is **unique per device** (see `/boot/firmware/webcam-setup.txt`); configured boards keep working and do not enter AP mode. Status: `sudo …/webcam-setup-ap.sh status`. Disable: `sudo touch /etc/webcam-pipeline/setup-ap.disabled`. Phone flow: [docs/diy/BUILD.md](diy/BUILD.md).
 
 **Reachability:** use the Pi’s LAN IP or mDNS (`home-webcam.local` on the DIY image; ops hosts may use a different hostname). Avahi is optional and does not depend on Cloudflare DNS.
 

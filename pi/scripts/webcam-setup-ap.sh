@@ -19,6 +19,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
 ENV_FILE="${WEBCAM_SETUP_AP_ENV:-/etc/webcam-setup-ap.env}"
 REPO_ENV="${ROOT}/pi/host/setup-ap.env"
+CRED_LIB="${HERE}/webcam-device-credentials.sh"
 DISABLE_MARKER="${WEBCAM_SETUP_AP_DISABLE:-/etc/webcam-pipeline/setup-ap.disabled}"
 # Written by Setup UI after a successful home Wi-Fi join (webcam user can write here).
 RUNTIME_DISABLE="${WEBCAM_SETUP_AP_DISABLE_RUNTIME:-/var/lib/webcam-pipeline/setup-ap.disabled}"
@@ -32,9 +33,13 @@ elif [[ -f "$REPO_ENV" ]]; then
   source "$REPO_ENV"
 fi
 
+# shellcheck source=/dev/null
+source "$CRED_LIB"
+
 SETUP_AP_ENABLED="${SETUP_AP_ENABLED:-yes}"
 SETUP_AP_SSID="${SETUP_AP_SSID:-Webcam-Setup}"
-SETUP_AP_PASSWORD="${SETUP_AP_PASSWORD:-webcam-setup}"
+# auto / empty / legacy webcam-setup → unique per-device PSK when the AP starts
+SETUP_AP_PASSWORD="${SETUP_AP_PASSWORD:-auto}"
 SETUP_AP_CONNECTION="${SETUP_AP_CONNECTION:-webcam-setup-ap}"
 SETUP_AP_GATEWAY="${SETUP_AP_GATEWAY:-10.42.0.1}"
 SETUP_AP_SETTLE_SECONDS="${SETUP_AP_SETTLE_SECONDS:-25}"
@@ -139,16 +144,21 @@ do_stop() {
 }
 
 do_start() {
-  local dev
+  local dev psk
   dev="$(wifi_device)"
   if [[ -z "$dev" ]]; then
     warn "no Wi-Fi device; cannot start setup AP"
     return 1
   fi
 
+  # Unique PSK only when the AP actually starts (configured Pis never reach here).
+  psk="$(webcam_resolve_setup_ap_password \
+    "$SETUP_AP_PASSWORD" "$SETUP_AP_SSID" "$SETUP_AP_GATEWAY" "pi" "$REPO_ENV" "")"
+  SETUP_AP_PASSWORD="$psk"
+
   do_stop
 
-  log "starting AP ssid=$SETUP_AP_SSID on $dev (password is the documented temporary DIY password)"
+  log "starting AP ssid=$SETUP_AP_SSID on $dev (unique per-device PSK; see /boot/firmware/webcam-setup.txt)"
   nmcli connection add \
     type wifi \
     ifname "$dev" \
@@ -167,7 +177,8 @@ do_start() {
 
   nmcli connection up "$SETUP_AP_CONNECTION"
   start_captive
-  log "AP up. Join Wi-Fi “$SETUP_AP_SSID”, open http://${SETUP_AP_GATEWAY}:8090/setup/ui"
+  log "AP up. Join Wi-Fi “$SETUP_AP_SSID” with the password from webcam-setup.txt"
+  log "Setup UI: http://${SETUP_AP_GATEWAY}:8090/setup/ui"
 }
 
 should_start() {
@@ -199,14 +210,20 @@ should_start() {
 }
 
 do_status() {
-  local active=no profiles
+  local active=no profiles psk_mode=unique
   setup_ap_active && active=yes
   profiles="$(home_wifi_profiles | tr '\n' ',' | sed 's/,$//')"
+  if webcam_password_needs_derive "${SETUP_AP_PASSWORD:-}"; then
+    psk_mode=pending-derive
+  elif [[ "${SETUP_AP_PASSWORD:-}" == "webcam-setup" ]]; then
+    psk_mode=legacy-shared
+  fi
   echo "enabled=${SETUP_AP_ENABLED}"
   echo "ssid=${SETUP_AP_SSID}"
   echo "connection=${SETUP_AP_CONNECTION}"
   echo "active=${active}"
   echo "gateway=${SETUP_AP_GATEWAY}"
+  echo "password_mode=${psk_mode}"
   echo "disable_marker=$([[ -f "$DISABLE_MARKER" ]] && echo yes || echo no)"
   echo "runtime_disable=$([[ -f "$RUNTIME_DISABLE" ]] && echo yes || echo no)"
   echo "ethernet_up=$(ethernet_up && echo yes || echo no)"

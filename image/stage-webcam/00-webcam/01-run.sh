@@ -62,6 +62,7 @@ set -e
 chmod +x /opt/home-webcam-pipeline/pi/scripts/*.sh \
   /opt/home-webcam-pipeline/pi/provision.sh \
   /opt/home-webcam-pipeline/pi/scripts/webcam-captive-redirect.py \
+  /opt/home-webcam-pipeline/pi/scripts/webcam-device-credentials.sh \
   /usr/local/sbin/webcam-image-first-boot.sh
 systemctl enable ssh
 systemctl enable NetworkManager || true
@@ -70,4 +71,12 @@ systemctl enable webcam-image-first-boot.service
 systemctl enable webcam-setup-ap.service
 : > /etc/webcam-pipeline/env
 chmod 600 /etc/webcam-pipeline/env
+# Placeholder boot-card note until first-boot writes the unique PSK.
+install -d -m 755 /boot/firmware
+cat >/boot/firmware/webcam-setup.txt <<'CARD'
+# Home webcam — unique credentials are written on first boot.
+# After the Pi has booted once, remount this boot partition (or read the file
+# on the running Pi) for SSID Webcam-Setup PASSWORD=… and optional SSH_PASSWORD.
+# Prefer Raspberry Pi Imager SSH public key over password login.
+CARD
 EOF

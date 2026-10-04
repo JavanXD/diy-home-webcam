@@ -39,34 +39,37 @@ Reference extras (not required day one):
 | Hostname | `home-webcam` |
 | App tree | `/opt/home-webcam-pipeline` |
 | Camera | `example` (from `examples/`) |
-| SSH user / temp password | `pi` / `webcam-setup` (change after first boot; prefer Imager SSH key) |
+| SSH user | `pi` — prefer Imager **SSH public key** (password auth off when keys exist) |
+| Unique credentials | `/boot/firmware/webcam-setup.txt` after first boot (AP PSK + emergency SSH password) |
 | R2 / secrets | Empty placeholders only |
-| Setup AP | `webcam-setup-ap.service` — SSID `Webcam-Setup` only when no home Wi-Fi profile exists |
+| Setup AP | `webcam-setup-ap.service` — SSID `Webcam-Setup`, **unique per-device PSK**, only when no home Wi-Fi profile exists |
 
 1. Download `home-webcam-*.img.xz` from the latest [Release](https://github.com/JavanXD/diy-home-webcam/releases) (preferred). Actions artifacts are for maintainers only and expire.
 2. [Raspberry Pi Imager](https://www.raspberrypi.com/software/) → **Use custom** → pick the `.img.xz`.  
-   Optional: set Wi-Fi + SSH public key in Imager (recommended if you already know the home SSID).
+   **Required path for SSH:** set your **SSH public key** in Imager. Optional: set home Wi-Fi if you already know the SSID.
 3. Or: `xz -dc home-webcam-*.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync`
-4. Boot. First boot runs provision (several minutes). Hostname is **`home-webcam`**.
+4. Boot. First boot writes unique credentials to the boot partition, then runs provision (several minutes). Hostname is **`home-webcam`**.
 
 #### First boot when Imager skipped Wi-Fi
 
 ```mermaid
 flowchart TD
   flash[Flash .img.xz] --> boot[First boot / provision]
+  boot --> card[Read webcam-setup.txt on boot partition]
   boot --> wifi{Home Wi-Fi in Imager?}
   wifi -->|yes| lan["Open http://home-webcam.local:8080/"]
-  wifi -->|no| ap[Phone joins Webcam-Setup]
+  wifi -->|no| ap[Phone joins Webcam-Setup with card PSK]
   ap --> setup["Setup UI http://10.42.0.1:8090/setup/ui"]
   setup --> home[Join home Wi-Fi]
   home --> lan
 ```
 
-1. On your phone, join Wi-Fi **`Webcam-Setup`**, password **`webcam-setup`** (temporary DIY password; change or disable after first join — see below).
-2. Open `http://10.42.0.1:8090/setup/ui` (many phones show a captive page that redirects there).
-3. Note the **Find this Pi** card (hostname, `*.local` name, current / last IPv4) before you leave the AP.
-4. Scan → pick your home network → **Join Wi-Fi**. The Pi leaves the setup AP and joins home. The success banner shows the new LAN IPv4 when DHCP answers in time.
-5. Switch the phone back to home Wi-Fi. Open the camera UI using one of:
+1. Read the **unique** AP password from `webcam-setup.txt` on the boot partition (`PASSWORD=…`). On a running Pi: `/boot/firmware/webcam-setup.txt`. There is no shared password in this doc.
+2. On your phone, join Wi-Fi **`Webcam-Setup`** with that password.
+3. Open `http://10.42.0.1:8090/setup/ui` (many phones show a captive page that redirects there). Setup UI also shows this device’s AP password while you are on the AP.
+4. Note the **Find this Pi** card (hostname, `*.local` name, current / last IPv4) before you leave the AP.
+5. Scan → pick your home network → **Join Wi-Fi**. The Pi leaves the setup AP and joins home. The success banner shows the new LAN IPv4 when DHCP answers in time.
+6. Switch the phone back to home Wi-Fi. Open the camera UI using one of:
 
 | How | Example |
 |-----|---------|
