@@ -65,8 +65,10 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     publish = """
   <p class="field-help">
     Upload the public JPEG to any S3-compatible store (Cloudflare R2, AWS S3, MinIO, Wasabi, Backblaze B2 S3 API),
-    write to a local outbox, or turn publish off. Keys go to <code>/etc/webcam-pipeline/env</code> on this Pi (not into git).
-    Leave the secret blank to keep the current one. Restart the pipeline service before the next upload uses a new key.
+    write to a local outbox, or turn publish off. A Cloudflare Worker landing page is optional — you can make the
+    object publicly readable and hotlink / <code>&lt;img&gt;</code> / iframe the object URL. Keys go to
+    <code>/etc/webcam-pipeline/env</code> on this Pi (not into git). Leave the secret blank to keep the current one.
+    Restart the pipeline service before the next upload uses a new key.
   </p>
   <label for="publishProvider">Provider</label>
   <select id="publishProvider">
@@ -106,10 +108,21 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     <button type="button" id="savePublish" class="primary">Save publish settings</button>
   </div>
 """
+    find_pi = """
+  <div id="find-pi" class="status-box" role="status">Loading address…</div>
+  <p class="field-help">
+    After you leave <strong>Webcam-Setup</strong>, switch your phone back to home Wi-Fi and open Camera with the
+    IPv4 or <code>*.local</code> name below. Many Android phones do not resolve <code>*.local</code> — use the IPv4
+    or your router’s Wi-Fi / DHCP client list (hostname often <code>home-webcam</code>).
+  </p>
+  <dl class="kv" id="find-pi-kv"></dl>
+  <p class="muted" id="find-pi-urls"></p>
+"""
     wifi = """
   <div id="wifi-now" class="status-box" role="status">Loading Wi-Fi…</div>
   <div id="ap-help" class="field-help" hidden>
     You are on the temporary <strong>Webcam-Setup</strong> access point.
+    Note the <strong>Find this Pi</strong> card (IPv4 / hostname) before you join home Wi-Fi.
     Scan, pick your home Wi-Fi, enter its password, then tap <strong>Join Wi-Fi</strong>.
     The Pi leaves Webcam-Setup and joins home; your phone must switch back to home Wi-Fi afterward.
     Temporary AP password (printed in the DIY build doc): <code>webcam-setup</code>.
@@ -127,6 +140,7 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     body = f"""
   {lan_ui.page_header("Setup", "Name, place, weather feed, and Wi-Fi for this Pi. Home network only.", kicker=":8090 · site · network")}
   {lan_ui.banner_slot("msg")}
+  {lan_ui.card("Find this Pi", find_pi, kind="pipe")}
   {lan_ui.card("Project", site, kind="pipe")}
   {lan_ui.card("New camera", create, kind="pipe")}
   {lan_ui.card("Publish", publish, kind="pipe")}
@@ -144,6 +158,16 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   function set(id, v) {{
     var el = document.getElementById(id);
     if (el && v != null) el.value = v;
+  }}
+
+  function row(dl, label, value) {{
+    if (!value) return;
+    var dt = document.createElement("dt");
+    dt.textContent = label;
+    var dd = document.createElement("dd");
+    dd.textContent = value;
+    dl.appendChild(dt);
+    dl.appendChild(dd);
   }}
 
   async function loadSite() {{
@@ -171,9 +195,53 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     if (current) sel.value = current;
   }}
 
+  function fillFindPi(status) {{
+    var box = document.getElementById("find-pi");
+    var dl = document.getElementById("find-pi-kv");
+    var urlsEl = document.getElementById("find-pi-urls");
+    if (!box || !dl) return;
+    dl.innerHTML = "";
+    if (urlsEl) urlsEl.textContent = "";
+    if (!status) {{
+      window.lanUi.banner(box, "warn", "Address unknown", "");
+      return;
+    }}
+    var hostname = status.hostname || "";
+    var mdns = status.mdns || (hostname ? hostname + ".local" : "");
+    var currentIp = "";
+    if (status.setup_ap) {{
+      currentIp = status.setup_ap_gateway || "10.42.0.1";
+    }} else if (status.ipv4) {{
+      currentIp = status.ipv4;
+    }}
+    var addrs = (status.addresses || []).map(function (a) {{
+      return (a.type || a.device || "?") + " " + (a.ipv4 || "");
+    }}).filter(Boolean);
+    var title = status.setup_ap ? "On Webcam-Setup AP" : (status.ssid ? "On home Wi-Fi" : "Network");
+    var detail = [mdns, currentIp].filter(Boolean).join(" · ");
+    window.lanUi.banner(box, status.setup_ap ? "warn" : "ok", title, detail);
+    row(dl, "Hostname", hostname);
+    row(dl, "mDNS", mdns);
+    row(dl, "Current IPv4", currentIp);
+    if (status.last_lan_ipv4 && status.last_lan_ipv4 !== currentIp) {{
+      row(dl, "Last home IPv4", status.last_lan_ipv4);
+    }}
+    if (addrs.length) row(dl, "Interfaces", addrs.join(", "));
+    var urls = status.lan_urls || {{}};
+    var linkBits = [];
+    if (urls.ipv4_camera) linkBits.push("Camera " + urls.ipv4_camera);
+    else if (urls.mdns_camera) linkBits.push("Camera " + urls.mdns_camera);
+    if (urls.mdns_camera && urls.ipv4_camera) linkBits.push("or " + urls.mdns_camera);
+    if (status.setup_ap) {{
+      linkBits.push("After Join: use Last home IPv4 or router client list if mDNS fails (common on Android).");
+    }}
+    if (urlsEl) urlsEl.textContent = linkBits.join(" · ");
+  }}
+
   function fillWifi(status) {{
     var box = document.getElementById("wifi-now");
     var apHelp = document.getElementById("ap-help");
+    fillFindPi(status);
     if (!status || status.available === false) {{
       window.lanUi.banner(box, "warn", "Wi-Fi unavailable", (status && status.message) || "");
       if (apHelp) apHelp.hidden = true;
@@ -272,8 +340,12 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
         body: JSON.stringify({{ ssid: ssid, password: val("psk") }})
       }});
       document.getElementById("psk").value = "";
-      var joinedDetail = (res.ipv4 || "") + (res.message ? " — " + res.message : "");
-      window.lanUi.showBanner("msg", "info", "Joined " + (res.ssid || ssid), joinedDetail.trim());
+      var joinedBits = [];
+      if (res.ipv4) joinedBits.push(res.ipv4);
+      if (res.mdns) joinedBits.push(res.mdns);
+      if (res.message) joinedBits.push(res.message);
+      window.lanUi.showBanner("msg", "info", "Joined " + (res.ssid || ssid), joinedBits.join(" — "));
+      fillFindPi(res);
       await loadWifi();
     }} catch (e) {{
       window.lanUi.showBanner("msg", "bad", "Could not join", e && e.message ? e.message : String(e));
@@ -314,9 +386,9 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   function providerHelp(provider) {{
     var map = {{
       off: "Public variants stay on this Pi only. No upload.",
-      r2: "Cloudflare R2 preset. Paste the account id (optional) or the full R2 S3 endpoint, bucket, and R2 API token keys.",
-      s3: "Any S3-compatible API: AWS S3, MinIO, Wasabi, Backblaze B2 (S3), etc. Set endpoint, bucket, region, and keys.",
-      local: "Writes the same key layout under data/outbox/ on this Pi. Useful for testing without a cloud bucket."
+      r2: "Cloudflare R2 preset. Paste the account id (optional) or the full R2 S3 endpoint, bucket, and R2 API token keys. Make the live object publicly readable to hotlink it — a Worker page is optional.",
+      s3: "Any S3-compatible API: AWS S3, MinIO, Wasabi, Backblaze B2 (S3), etc. Set endpoint, bucket, region, and keys. Public object URL / hotlink is enough; a Worker is optional.",
+      local: "Writes the same key layout under data/outbox/ on this Pi. Serve or copy that file yourself — no cloud bucket."
     }};
     return map[provider] || "";
   }}

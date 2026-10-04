@@ -6,6 +6,57 @@ Configure on the Pi LAN page **Setup → Publish** (`http://<pi>:8090/setup/ui`)
 
 Secrets never belong in git. The blank template is [`examples/pi/r2.env`](../../examples/pi/r2.env) (name is historical; same shape for MinIO/AWS/etc.).
 
+## Publish options
+
+```mermaid
+flowchart TD
+  start[Public variant ready] --> mode{Setup → Publish}
+  mode -->|Off| stop[No upload — LAN / HA still work]
+  mode -->|Local outbox| disk["Write live/… under data/outbox/"]
+  mode -->|Cloudflare R2| r2[Upload via S3 API to R2]
+  mode -->|Custom S3| s3[MinIO / AWS / Wasabi / B2 / …]
+  r2 --> worker{Worker landing?}
+  s3 --> worker
+  worker -->|skip| url[Hotlink object URL or your own host]
+  worker -->|optional| page[Cloudflare Worker + R2 binding]
+```
+
+| Mode | When to use |
+|---|---|
+| **Off** | LAN / Home Assistant only |
+| **Local outbox** | Same key layout on disk; no cloud credentials |
+| **Cloudflare R2** | Free-plan object store; optional Worker page |
+| **Custom S3** | MinIO on the LAN, AWS, Wasabi, Backblaze B2, … |
+
+A Worker landing page is **optional**. You can stop at a public-readable object URL (or serve the outbox yourself).
+
+## Public JPEG without a Worker
+
+You do **not** need Cloudflare Workers, Wrangler, or a branded landing page to put one JPEG on the internet. The Pi only uploads an object; anything that can show an `<img>` can use it.
+
+1. In Setup → **Publish**, pick **Cloudflare R2** or **Custom S3-compatible** (or **Local outbox** if you will host the file yourself).
+2. Make the live object **publicly readable** in the bucket (public bucket, public ACL on that key, or a CDN/public URL your provider gives you). Keep write credentials private on the Pi.
+3. Note the object URL. It must end with the same key as `publish.public_live_key` in `camera.yaml` (example: `…/live/example-live-webcam.jpg`).
+4. Use that URL as a **hotlink**, `<img src="…">`, or an iframe on any site you control.
+
+Examples (replace with your real public URL):
+
+```html
+<!-- Hotlink / embed -->
+<img src="https://pub-xxxx.r2.dev/live/example-live-webcam.jpg" alt="Live webcam" width="960" height="540" />
+
+<!-- Or iframe a page that only shows the image -->
+<iframe src="https://your-site.example/webcam.html" title="Live webcam" width="960" height="540"></iframe>
+```
+
+| Goal | Path |
+|------|------|
+| LAN / Home Assistant only | Publish **Off** |
+| One public JPEG URL | Upload + public-readable object (this section) |
+| Branded HTML page on a custom domain | Optional Cloudflare Worker + R2 binding — [BUILD.md](BUILD.md) § publish, [`examples/webhosting/`](../../examples/webhosting/) |
+
+Setup UI Publish help text points at the same path. The Worker template stays for people who want a landing page; it is not required for a working public JPEG.
+
 ## Env vars (boto3 names)
 
 | Variable | Required for remote upload | Notes |
@@ -42,7 +93,7 @@ sudo systemctl restart webcam-pipeline
 3. Or copy [`examples/pi/r2.env`](../../examples/pi/r2.env), fill values, install as `/etc/webcam-pipeline/env`.
 4. `publish.enabled: true` and `backend: s3` (legacy `backend: r2` still works).
 
-Optional public site: Cloudflare Worker + R2 binding — see [BUILD.md](BUILD.md) § publish and [`examples/webhosting/`](../../examples/webhosting/).
+For a public JPEG alone, enable **public read** on the live object (or use an R2 public bucket / `*.r2.dev` URL) and hotlink it — see [Public JPEG without a Worker](#public-jpeg-without-a-worker). Optional branded site: Cloudflare Worker + R2 binding — [BUILD.md](BUILD.md) § publish and [`examples/webhosting/`](../../examples/webhosting/).
 
 ### Custom S3 (MinIO, AWS, Wasabi, Backblaze B2, …)
 
@@ -88,4 +139,4 @@ On Setup → Publish, **Test connection** runs `head_bucket` with the form value
 
 ## Public object key
 
-The live object name comes from `cameras/<id>/camera.yaml` → `publish.public_live_key` (e.g. `live/example-live-webcam.jpg`). Your website or Worker must serve that same key. Changing the live crop does not rename the object.
+The live object name comes from `cameras/<id>/camera.yaml` → `publish.public_live_key` (e.g. `live/example-live-webcam.jpg`). Your public object URL, hotlink, iframe, or Worker must use that same key. Changing the live crop does not rename the object.

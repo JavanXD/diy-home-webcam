@@ -50,6 +50,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Seed cameras/example from examples (no private/ on CI)
+        run: |
+          # Ops tree keeps Example under gitignored private/ + symlink.
+          # CI has neither — materialize a example-shaped copy from examples.
+          if [[ ! -f cameras/example/camera.yaml ]]; then
+            mkdir -p cameras
+            rm -rf cameras/example
+            cp -R examples/cameras/example cameras/example
+            python3 - <<'PY'
+          from pathlib import Path
+          root = Path("cameras/example")
+          for path in [root / "camera.yaml", *sorted((root / "variants").glob("*.yaml"))]:
+              text = path.read_text(encoding="utf-8")
+              text = text.replace("Example Webcam", "Example Webcam")
+              text = text.replace("example", "example")
+              path.write_text(text, encoding="utf-8")
+          cam = root / "camera.yaml"
+          body = cam.read_text(encoding="utf-8")
+          if "status_text:" not in body:
+              body = body.rstrip() + "\n\nstatus_text:\n  night_title: Nachts offline\n  maintenance_title: Wartung\n  back_at_label: Wieder da ab\n"
+              cam.write_text(body, encoding="utf-8")
+          print("seeded", root)
+          PY
+          fi
+          test -f cameras/example/variants/landscape-public.yaml
+          test -f cameras/example/variants/private.yaml
       - name: Pipeline tests
         working-directory: pi/pipeline
         run: |

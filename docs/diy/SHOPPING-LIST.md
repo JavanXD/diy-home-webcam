@@ -1,35 +1,55 @@
 # Shopping list
 
-Canonical bill of materials for this reference build. Shop prices change; **Paid** amounts are approximate what this build cost (goods only where noted), not a live quote.
+Canonical bill of materials. Shop prices change; **Paid** amounts are approximate what this build cost (goods only where noted), not a live quote.
 
 There is no second BOM in this repo — link here from README / DIY hub. Do not invent SKUs for unnamed roles.
 
-## Bill of materials
+## Minimum kit (LAN-only, microSD)
+
+Enough to see a private JPEG on your home network. Boot from microSD; skip NVMe, M.2 HAT, and the tall shelf stand until you want the reference layout.
 
 | Role | Item | Notes | Paid |
 |------|------|-------|------|
-| Computer | [Raspberry Pi 5](https://www.raspberrypi.com/products/raspberry-pi-5/), 8 GB RAM | Headless. Camera + pipeline on one board. 4 GB is enough to try. | — |
-| OS | Raspberry Pi OS Lite, 64-bit | No desktop. Flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/). | — |
-| Camera | [HQ Camera SC0261](https://www.raspberrypi.com/products/raspberry-pi-hq-camera/) (IMX477, C–CS) | Includes 5 mm C–CS adapter ring — remove it before fitting the CS lens below. | ~56 € |
-| Lens | Arducam CS-mount 16 mm (LN050 / CS2316ZM02) | Manual focus + aperture. ~24° HFOV on this sensor. Closest focus ~0.2 m. | ~26 € |
-| Camera cable | Pi 5 CSI flex, 50 cm | 15-pin camera ↔ 22-pin Pi. Enough for a window-shelf mount beside the board. | ~3 € |
-| Boot disk | Kingston NV3 NVMe 500 GB, M.2 **2230** (SNV3SM3/500G) | Appears as `/dev/nvme0n1` for the scripts in `pi/scripts/` as written. | ~142 € |
-| NVMe adapter | Raspberry Pi M.2 HAT+ Compact | Pi 5 PCIe → M.2. USB enclosure as `/dev/sda` needs `DST_DISK` changes in `pi/host/desired.env`. | ~15 € |
-| Bootstrap / fallback | microSDXC 256 GB (e.g. SanDisk Extreme PRO) | Imager target and fallback if NVMe is absent. 32 GB is enough to install. | ~62 € |
-| Case | [Official Raspberry Pi 5 case](https://www.raspberrypi.com/products/raspberry-pi-5-case/) | Shelf mount. Fan included — do **not** buy a separate Active Cooler. | — |
-| Cooling | Fan included with official Pi 5 case | | — |
-| Power | Official-class USB-C PD for Pi 5 | Typically **5 V / 5 A / 27 W**. NVMe + camera brown out weak chargers. Not named here. | — |
+| Computer | [Raspberry Pi 5](https://www.raspberrypi.com/products/raspberry-pi-5/), 4 GB or 8 GB | Headless. Camera + pipeline on one board. 4 GB is enough to try; this reference Pi is 8 GB. | — |
+| OS | Raspberry Pi OS Lite, 64-bit | No desktop. Prefer the flashable image, or flash with [Raspberry Pi Imager](https://www.raspberrypi.com/software/). | — |
+| Boot disk | microSDXC 32 GB+ (A2 / U3 class is fine) | Imager / flashable-image target. 32 GB is enough to install; larger helps timelapse later. | — |
+| Camera | [HQ Camera SC0261](https://www.raspberrypi.com/products/raspberry-pi-hq-camera/) (IMX477, C–CS) | Includes 5 mm C–CS adapter ring — remove it before fitting a CS lens. | ~56 € |
+| Lens | Arducam CS-mount **16 mm** (LN050 / CS2316ZM02) *or shorter* | Manual focus + aperture. 16 mm ≈24° HFOV (distant tower). **8 mm / 12 mm** CS lenses see more garden / yard — pick for your distance. Closest focus on LN050 ~0.2 m. | ~26 € (16 mm) |
+| Camera cable | Pi 5 CSI flex (15-pin camera ↔ 22-pin Pi) | 30–50 cm is typical for a window sill next to the board. | ~3 € |
+| Power | Official-class USB-C PD for Pi 5 | Typically **5 V / 5 A / 27 W**. Weak phone chargers brown out under load. Not named here. | — |
 | Network | Wi-Fi day to day; Ethernet optional | DHCP. Router reservation optional. | — |
 
-**Named goods subtotal** (camera + lens + HAT + cable + NVMe + microSD, excl. shipping): about **303 €**. Board, case, and PSU not included.
+**You do not need** Cloudflare, a Worker, Home Assistant, NVMe, or an M.2 HAT for LAN-only use. Publish stays **Off** until you want a public JPEG ([PUBLISH.md](PUBLISH.md)).
 
-![Pi 5 case open with M.2 HAT+ Compact, Kingston NVMe 500 GB, SanDisk Extreme PRO microSD](images/pi-nvme-hat-sd.jpg)
+### Camera and lens (focus gotcha)
 
-## Camera and lens (focus gotcha)
+The lens is CS-mount. The camera arrives with a C-mount adapter ring already fitted. **Take that ring off** before you screw a CS lens on. Leave the ring in place and a distant subject never gets sharp; turning further unscrews the lens instead of focusing. Steps: [BUILD.md](BUILD.md) § Focus.
 
-The lens is CS-mount. The camera arrives with a C-mount adapter ring already fitted. **Take that ring off** before you screw this lens on. Leave the ring in place and a distant subject never gets sharp; turning further unscrews the lens instead of focusing. Steps: [BUILD.md](BUILD.md) § Focus.
+Focus and iris are rings on the lens; nothing in YAML sets them.
 
-The 16 mm lens sees a narrow slice (a distant tower can fill the frame). Shorter CS lengths (8 mm / 12 mm) see more garden — those are not what this reference Pi uses. Focus and iris are rings on the lens; nothing in YAML sets them.
+## Reference build (this Pi)
+
+Same camera stack as the minimum kit, plus storage/cooling/mount choices used on the live ops Pi. Treat NVMe + HAT + tall stand as **optional upgrades**, not day-one requirements.
+
+| Role | Item | Notes | Paid |
+|------|------|-------|------|
+| Computer | Raspberry Pi 5, **8 GB** | Same role as minimum kit. | — |
+| Boot / data | Kingston NV3 NVMe 500 GB, M.2 **2230** (SNV3SM3/500G) | Appears as `/dev/nvme0n1` for the scripts in `pi/scripts/` as written. | ~142 € |
+| NVMe adapter | Raspberry Pi M.2 HAT+ Compact | Pi 5 PCIe → M.2. USB enclosure as `/dev/sda` needs `DST_DISK` changes in `pi/host/desired.env`. | ~15 € |
+| Bootstrap / fallback | microSDXC 256 GB (e.g. SanDisk Extreme PRO) | Imager target and fallback if NVMe is absent. | ~62 € |
+| Case | [Official Raspberry Pi 5 case](https://www.raspberrypi.com/products/raspberry-pi-5-case/) | Shelf mount. Fan included — do **not** buy a separate Active Cooler. | — |
+| Cooling | Fan included with official Pi 5 case | | — |
+| Mount | Tall camera stand (1/4"-20) + window shelf | Photos below. Not a specific SKU here. | — |
+| Lens (reference) | Arducam CS 16 mm LN050 | Narrow FOV for a distant steeple; gardens often want 8 mm / 12 mm instead. | ~26 € |
+
+**Named goods subtotal** for the reference extras (camera + 16 mm lens + HAT + cable + NVMe + microSD, excl. shipping): about **303 €**. Board, case, and PSU not included.
+
+<img src="images/pi-nvme-hat-sd.jpg" alt="Pi 5 case open with M.2 HAT+ Compact, Kingston NVMe 500 GB, SanDisk Extreme PRO microSD" width="420" />
+
+Window-shelf reference (optional tall stand):
+
+<img src="images/pi-camera-assembly.jpg" alt="HQ camera on tall stand" width="280" />
+<img src="images/pi-full-setup.jpg" alt="Pi in official case with tall stand and CSI" width="280" />
 
 ## You also need (not a specific product here)
 
@@ -40,18 +60,15 @@ The 16 mm lens sees a narrow slice (a distant tower can fill the frame). Short
 | microSD reader | To flash the card from your computer. |
 | SSH key on your computer | Preferred over password login. Do not commit the private key. |
 
-## Optional, same shape as this project
+## Optional later
 
 | Role | Used here | Skip if |
 |------|-----------|---------|
-| Cloudflare account | R2 bucket + Worker on the Free plan | You only want the picture on your LAN. |
-| Custom domain | This deployment uses one; DIY copies use theirs | You are happy with a LAN URL. |
+| Cloudflare account | R2 bucket + optional Worker on the Free plan | You only want the picture on your LAN, or you hotlink a public object URL without a branded page. |
+| Custom domain | Branded Worker landing | You are happy with a public JPEG URL or a LAN URL. |
 | Home Assistant | YAML package only, on another machine | You do not already run HA. |
 | Second public crop | `wide` variant, not uploaded by default | One landscape JPEG is enough. |
-
-## Minimum to see a picture
-
-Pi 5 (4 GB is enough to try; this one is 8 GB), official-class USB-C PD supply, microSD, HQ camera SC0261, the LN050 16 mm CS lens with the C–CS ring removed, a Pi 5 CSI cable, and Wi-Fi or Ethernet. NVMe, official case (cooling included), Cloudflare, and Home Assistant come after `/raw.jpg` works.
+| NVMe + M.2 HAT | Reference build OS disk / large timelapse archive | microSD is enough for LAN-only and light history. |
 
 ## What this software expects from the camera
 

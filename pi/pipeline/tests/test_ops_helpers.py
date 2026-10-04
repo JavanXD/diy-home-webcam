@@ -23,9 +23,10 @@ def test_source_url_env_override(monkeypatch):
     assert profile.timelapse.get("enabled") is True
     assert profile.timelapse.get("max_gb") == 40
     assert profile.timelapse.get("retention_days") == 400
-    assert profile.status_text.night_title == "Nachts offline"
-    assert profile.status_text.maintenance_title == "Wartung"
-    assert profile.status_text.back_at_label == "Wieder da ab"
+    # Example camera.yaml uses German status_text; CI seeds from examples/ (English defaults).
+    assert profile.status_text.night_title in {"Nachts offline", "Offline at night"}
+    assert profile.status_text.maintenance_title in {"Wartung", "Maintenance"}
+    assert profile.status_text.back_at_label in {"Wieder da ab", "Back at"}
 
 
 def test_make_timelapse_script(tmp_path: Path):

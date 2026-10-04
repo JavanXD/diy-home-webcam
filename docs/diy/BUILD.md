@@ -4,16 +4,29 @@ From a blank microSD to a LAN JPEG, then optional public hosting. Parts: [SHOPPI
 
 This checkout ships a starter camera called `example`. The **DIY flashable image** defaults to the generic `example` camera and hostname `home-webcam`. To start a different camera from a blank OS, copy the example **before** the first pipeline install so `pipeline.yaml` lists your id.
 
+```mermaid
+flowchart TD
+  assemble[Assemble hardware] --> flash[Flash OS / image]
+  flash --> boot[Boot + provision]
+  boot --> lan[LAN JPEG on :8080]
+  lan --> focus[Focus + crop + masks]
+  focus --> publish[Optional publish / HA]
+```
+
 ## 1. Assemble
 
-Parts flat-lay (case open, M.2 HAT+ Compact, Kingston NVMe, microSD): ![NVMe HAT and storage](images/pi-nvme-hat-sd.jpg)
+Start from the [minimum SD kit](SHOPPING-LIST.md#minimum-kit-lan-only-microsd) unless you already bought the [reference build](SHOPPING-LIST.md#reference-build-this-pi) extras.
 
-1. Lens for **this** parts list (LN050, 16 mm, CS-mount): unscrew the 5 mm C–CS adapter ring that is already on the HQ camera (SC0261) and set it aside. Screw the lens onto the camera body until it stops. A C-mount lens is the opposite: leave the ring on and screw the lens onto the ring. Details under [Focus](#focus) below.
+1. Lens (CS-mount, e.g. LN050 16 mm — or shorter for a garden): unscrew the 5 mm C–CS adapter ring that is already on the HQ camera (SC0261) and set it aside. Screw the lens onto the camera body until it stops. A C-mount lens is the opposite: leave the ring on and screw the lens onto the ring. Details under [Focus](#focus) below.
 2. Connect the HQ camera ribbon to the **Pi 5** CSI connector with a Pi 5–compatible flex (15-pin camera ↔ 22-pin Pi). Latch closed; contacts oriented per the Pi 5 silkscreen.
 3. Power supply unplugged. Insert the microSD after it is flashed.
-4. Optional: fit the M.2 HAT+ Compact + NVMe. First boot from the SD card; move the OS later with `pi/scripts/migrate-os-to-nvme.sh` ([docs/PI-HOST.md](../PI-HOST.md)).
+4. Optional later: M.2 HAT+ Compact + NVMe (reference build). First boot from the SD card; move the OS later with `pi/scripts/migrate-os-to-nvme.sh` ([docs/PI-HOST.md](../PI-HOST.md)).
 
-Window-shelf reference (Pi in official case, tall stand, CSI down the pole): ![Full setup](images/pi-full-setup.jpg) · close-up ![Camera assembly](images/pi-camera-assembly.jpg)
+Reference extras (not required day one):
+
+<img src="images/pi-nvme-hat-sd.jpg" alt="NVMe HAT and storage" width="420" />
+<img src="images/pi-full-setup.jpg" alt="Full setup with tall stand" width="280" />
+<img src="images/pi-camera-assembly.jpg" alt="Camera assembly" width="280" />
 
 ## 2. Get the OS onto the card
 
@@ -35,16 +48,36 @@ GitHub Actions workflow **Build Pi image** (`.github/workflows/build-pi-image.ym
 3. Or: `xz -dc home-webcam-*.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync`
 4. Boot. First boot runs provision (several minutes). Hostname is **`home-webcam`**.
 
-If Imager did **not** configure Wi-Fi, use the setup access point:
+#### First boot when Imager skipped Wi-Fi
+
+```mermaid
+flowchart TD
+  flash[Flash .img.xz] --> boot[First boot / provision]
+  boot --> wifi{Home Wi-Fi in Imager?}
+  wifi -->|yes| lan["Open http://home-webcam.local:8080/"]
+  wifi -->|no| ap[Phone joins Webcam-Setup]
+  ap --> setup["Setup UI http://10.42.0.1:8090/setup/ui"]
+  setup --> home[Join home Wi-Fi]
+  home --> lan
+```
 
 1. On your phone, join Wi-Fi **`Webcam-Setup`**, password **`webcam-setup`** (temporary DIY password; change or disable after first join — see below).
 2. Open `http://10.42.0.1:8090/setup/ui` (many phones show a captive page that redirects there).
-3. Scan → pick your home network → **Join Wi-Fi**. The Pi leaves the setup AP and joins home.
-4. Switch the phone back to home Wi-Fi. Open `http://home-webcam.local:8080/` (or the address from your router’s DHCP list).
+3. Note the **Find this Pi** card (hostname, `*.local` name, current / last IPv4) before you leave the AP.
+4. Scan → pick your home network → **Join Wi-Fi**. The Pi leaves the setup AP and joins home. The success banner shows the new LAN IPv4 when DHCP answers in time.
+5. Switch the phone back to home Wi-Fi. Open the camera UI using one of:
+
+| How | Example |
+|-----|---------|
+| mDNS | `http://home-webcam.local:8080/` (flashable-image hostname) |
+| IPv4 from Setup | `http://192.168.x.x:8080/` (shown after Join / on Find this Pi) |
+| Router client list | Look for hostname `home-webcam` in the DHCP / Wi-Fi client list |
+
+**Android note:** many Android browsers do **not** resolve `*.local` (mDNS) reliably. Prefer the IPv4 from Setup or the router’s client list. iOS / macOS / most Linux desktops usually resolve `home-webcam.local` when Avahi is running on the Pi.
 
 The setup AP starts **only** when there is no saved home Wi-Fi profile, Wi-Fi is not already associated, and ethernet has no IPv4. A Pi that already has NetworkManager Wi-Fi will **not** enter AP mode. Disable forever: `sudo touch /etc/webcam-pipeline/setup-ap.disabled`.
 
-Still add your own crops, privacy masks, and Cloudflare keys before publishing.
+Still add your own crops and privacy masks before a public JPEG. Cloudflare / Worker keys are optional — see [PUBLISH.md](PUBLISH.md).
 
 **Local pi-gen (optional):** needs Docker and privilege; from the repo root run `./image/build-with-pi-gen.sh`. Output under `image/pi-gen/deploy/` (gitignored).
 
@@ -118,6 +151,15 @@ Public sunrise/sunset uses `location` and `timezone` in that `camera.yaml`. Setu
 
 Full field/env reference: **[PUBLISH.md](PUBLISH.md)**.
 
+```mermaid
+flowchart LR
+  pipe[Pipeline] --> choice{Publish mode}
+  choice -->|Off| lan[LAN / HA only]
+  choice -->|Local outbox| outbox["data/outbox/"]
+  choice -->|S3 / R2| bucket[Object store]
+  bucket --> edge[Optional Worker + custom domain]
+```
+
 **Easiest:** open `http://<pi>:8090/setup/ui` → **Publish**, pick a provider, fill endpoint/bucket/keys, **Test connection**, **Save**, then restart `webcam-pipeline`.
 
 | Provider | What it does |
@@ -127,9 +169,11 @@ Full field/env reference: **[PUBLISH.md](PUBLISH.md)**.
 | **Custom S3-compatible** | AWS S3, MinIO, Wasabi, Backblaze B2 S3 API, etc. |
 | **Local outbox** | Same key layout under `data/outbox/` (no cloud) |
 
+**Public JPEG without a Worker:** make the live object publicly readable and hotlink / `<img>` / iframe the object URL. No Wrangler required. Steps: [PUBLISH.md — Public JPEG without a Worker](PUBLISH.md#public-jpeg-without-a-worker).
+
 Env file shape (no real secrets in git): [`examples/pi/r2.env`](../../examples/pi/r2.env) — install as `/etc/webcam-pipeline/env` (mode `640`, `root:webcam`). Variable names are the boto3/`AWS_*` convention; `R2_BUCKET` and `S3_BUCKET` both work.
 
-**Optional Cloudflare Worker landing** (R2 binding):
+**Optional branded landing** (Cloudflare Worker + R2 binding only if you want HTML on a custom domain):
 
 1. Edit `webhosting/wrangler.jsonc` (template: [`examples/webhosting/wrangler.jsonc`](../../examples/webhosting/wrangler.jsonc)) and the `LIVE_MAP` in `webhosting/worker/src/index.ts` so the public path matches `publish.public_live_key`.
 2. Replace the landing page under `webhosting/site/` with your own copy.

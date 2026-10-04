@@ -10,8 +10,12 @@ module tears the AP down so the radio can stay on the home network.
 
 from __future__ import annotations
 
+import json
+import os
 import shutil
+import socket
 import subprocess
+from pathlib import Path
 from typing import Any, Callable
 
 Runner = Callable[[list[str]], tuple[int, str, str]]
@@ -23,19 +27,36 @@ SETUP_AP_CONNECTION = "webcam-setup-ap"
 SETUP_AP_SSID = "Webcam-Setup"
 SETUP_AP_GATEWAY = "10.42.0.1"
 _SETUP_AP_NAMES = frozenset({SETUP_AP_CONNECTION, "Hotspot"})
+_DEFAULT_LAST_LAN_PATH = Path("/var/lib/webcam-pipeline/last-lan.json")
 
 
 class WifiError(ValueError):
     pass
 
 
-def wifi_status(*, runner: Runner | None = None) -> dict[str, Any]:
+def wifi_status(*, runner: Runner | None = None, last_lan_path: Path | None = None) -> dict[str, Any]:
     run = runner or _run
+    identity = host_identity()
+    last_path = last_lan_path or _last_lan_path()
     if shutil.which("nmcli") is None and runner is None:
-        return {"available": False, "message": "NetworkManager (nmcli) is not installed"}
+        return {
+            "available": False,
+            "message": "NetworkManager (nmcli) is not installed",
+            **identity,
+            "last_lan_ipv4": read_last_lan_ipv4(path=last_path),
+            "addresses": [],
+            "lan_urls": _lan_urls(identity["mdns"], read_last_lan_ipv4(path=last_path)),
+        }
     code, out, err = run(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device", "status"])
     if code != 0:
-        return {"available": False, "message": _public_error(err or out)}
+        return {
+            "available": False,
+            "message": _public_error(err or out),
+            **identity,
+            "last_lan_ipv4": read_last_lan_ipv4(path=last_path),
+            "addresses": [],
+            "lan_urls": _lan_urls(identity["mdns"], read_last_lan_ipv4(path=last_path)),
+        }
     wifi = _wifi_device(out)
     ipv4 = ""
     if wifi.get("device"):
@@ -47,6 +68,22 @@ def wifi_status(*, runner: Runner | None = None) -> dict[str, Any]:
     # When associated to our AP, surface the AP SSID (connection name ≠ SSID).
     if ap_active and (not ssid or ssid in _SETUP_AP_NAMES):
         ssid = SETUP_AP_SSID
+    glance = network_glance(runner=run)
+    addresses = [
+        {
+            "device": row.get("device") or "",
+            "type": row.get("type") or "",
+            "ipv4": row.get("ipv4") or "",
+            "up": bool(row.get("up")),
+        }
+        for row in (glance.get("interfaces") or [])
+        if row.get("ipv4")
+    ]
+    home_ipv4 = _prefer_home_ipv4(addresses, wifi_ipv4=ipv4, setup_ap=ap_active)
+    if home_ipv4:
+        remember_last_lan_ipv4(home_ipv4, path=last_path)
+    last_lan = read_last_lan_ipv4(path=last_path)
+    primary_for_urls = home_ipv4 or ("" if ap_active else ipv4) or last_lan
     return {
         "available": True,
         "device": wifi.get("device") or "",
@@ -57,6 +94,10 @@ def wifi_status(*, runner: Runner | None = None) -> dict[str, Any]:
         "setup_ap_ssid": SETUP_AP_SSID if ap_active else "",
         "setup_ap_gateway": SETUP_AP_GATEWAY if ap_active else "",
         "setup_ap_url": f"http://{SETUP_AP_GATEWAY}:8090/setup/ui" if ap_active else "",
+        **identity,
+        "addresses": addresses,
+        "last_lan_ipv4": last_lan,
+        "lan_urls": _lan_urls(identity["mdns"], primary_for_urls),
     }
 
 
@@ -117,7 +158,13 @@ def wifi_scan(*, runner: Runner | None = None) -> dict[str, Any]:
     return {"networks": parse_wifi_list(out)}
 
 
-def wifi_connect(ssid: str, password: str, *, runner: Runner | None = None) -> dict[str, Any]:
+def wifi_connect(
+    ssid: str,
+    password: str,
+    *,
+    runner: Runner | None = None,
+    last_lan_path: Path | None = None,
+) -> dict[str, Any]:
     run = runner or _run
     name = str(ssid or "").strip()
     secret = str(password or "")
@@ -137,14 +184,59 @@ def wifi_connect(ssid: str, password: str, *, runner: Runner | None = None) -> d
         raise WifiError(_public_error(err or out, secret=secret))
     # Ensure the setup hotspot does not autoconnect again.
     stop_setup_ap(runner=run)
-    status = wifi_status(runner=run)
+    status = wifi_status(runner=run, last_lan_path=last_lan_path)
+    ipv4 = str(status.get("ipv4") or "")
+    if ipv4 and ipv4 != SETUP_AP_GATEWAY:
+        remember_last_lan_ipv4(ipv4, path=last_lan_path or _last_lan_path())
+        status = wifi_status(runner=run, last_lan_path=last_lan_path)
+    identity = host_identity()
+    mdns = identity["mdns"]
+    urls = status.get("lan_urls") or _lan_urls(mdns, ipv4 or read_last_lan_ipv4(path=last_lan_path or _last_lan_path()))
+    tip = "Leave Webcam-Setup on your phone; open Camera on home Wi-Fi."
+    if ipv4:
+        tip = f"Leave Webcam-Setup on your phone; open http://{ipv4}:8080/ (or http://{mdns}:8080/)."
+    elif urls.get("mdns_camera"):
+        tip = f"Leave Webcam-Setup on your phone; try {urls['mdns_camera']} (Android often needs the IPv4 from your router)."
     return {
         "ok": True,
         "ssid": name,
-        "ipv4": status.get("ipv4") or "",
-        "message": "Connected. Leave Webcam-Setup on your phone; use the Pi’s new LAN address.",
+        "ipv4": ipv4,
+        "hostname": identity["hostname"],
+        "mdns": mdns,
+        "last_lan_ipv4": status.get("last_lan_ipv4") or "",
+        "lan_urls": urls,
+        "message": tip,
         "setup_ap_stopped": True,
     }
+
+
+def host_identity() -> dict[str, str]:
+    """Short hostname + mDNS name for Setup “find this Pi”."""
+    raw = socket.gethostname() or "home-webcam"
+    hostname = raw.split(".")[0].strip() or "home-webcam"
+    return {"hostname": hostname, "mdns": f"{hostname}.local"}
+
+
+def read_last_lan_ipv4(*, path: Path | None = None) -> str:
+    target = path or _last_lan_path()
+    try:
+        data = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError):
+        return ""
+    ip = str((data or {}).get("ipv4") or "").strip()
+    return ip if _looks_like_ipv4(ip) and ip != SETUP_AP_GATEWAY else ""
+
+
+def remember_last_lan_ipv4(ipv4: str, *, path: Path | None = None) -> None:
+    ip = str(ipv4 or "").strip()
+    if not _looks_like_ipv4(ip) or ip == SETUP_AP_GATEWAY:
+        return
+    target = path or _last_lan_path()
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps({"ipv4": ip}, indent=2) + "\n", encoding="utf-8")
+    except OSError:
+        return
 
 
 def setup_ap_active(*, runner: Runner | None = None) -> bool:
@@ -356,6 +448,59 @@ def _public_error(text: str, *, secret: str = "") -> str:
             "pi/pipeline/systemd/50-webcam-network.rules and try again."
         )
     return msg[:300]
+
+
+def _last_lan_path() -> Path:
+    override = (os.environ.get("WEBCAM_LAST_LAN_PATH") or "").strip()
+    return Path(override) if override else _DEFAULT_LAST_LAN_PATH
+
+
+def _looks_like_ipv4(value: str) -> bool:
+    parts = value.split(".")
+    if len(parts) != 4:
+        return False
+    try:
+        return all(0 <= int(p) <= 255 for p in parts)
+    except ValueError:
+        return False
+
+
+def _prefer_home_ipv4(
+    addresses: list[dict[str, Any]],
+    *,
+    wifi_ipv4: str,
+    setup_ap: bool,
+) -> str:
+    """Pick a non-AP IPv4 to remember (prefer ethernet, then wifi)."""
+    if setup_ap:
+        for row in addresses:
+            ip = str(row.get("ipv4") or "")
+            if ip and ip != SETUP_AP_GATEWAY and str(row.get("type")) == "ethernet":
+                return ip
+        return ""
+    for kind in ("ethernet", "wifi"):
+        for row in addresses:
+            if str(row.get("type")) != kind:
+                continue
+            ip = str(row.get("ipv4") or "")
+            if ip and ip != SETUP_AP_GATEWAY:
+                return ip
+    if wifi_ipv4 and wifi_ipv4 != SETUP_AP_GATEWAY:
+        return wifi_ipv4
+    return ""
+
+
+def _lan_urls(mdns: str, ipv4: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    host = (mdns or "").strip()
+    ip = (ipv4 or "").strip()
+    if host:
+        out["mdns_camera"] = f"http://{host}:8080/"
+        out["mdns_setup"] = f"http://{host}:8090/setup/ui"
+    if ip and ip != SETUP_AP_GATEWAY:
+        out["ipv4_camera"] = f"http://{ip}:8080/"
+        out["ipv4_setup"] = f"http://{ip}:8090/setup/ui"
+    return out
 
 
 def _run(args: list[str]) -> tuple[int, str, str]:
