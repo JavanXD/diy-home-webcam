@@ -8,7 +8,9 @@ COMPRESSION_LEVEL='6'
 ENABLE_SSH=1
 TARGET_HOSTNAME='home-webcam'
 FIRST_USER_NAME='pi'
-# No password baked in — set via Imager or first console login policy on your build.
+# Temporary DIY default (change after first boot). Required by pi-gen when
+# DISABLE_FIRST_BOOT_USER_RENAME=1. Prefer SSH key via Imager when possible.
+FIRST_USER_PASS='webcam-setup'
 DISABLE_FIRST_BOOT_USER_RENAME=1
 # Do not bake Wi-Fi into the image; setup AP or Imager handles that.
 STAGE_LIST="stage0 stage1 stage2 ./stage-webcam"

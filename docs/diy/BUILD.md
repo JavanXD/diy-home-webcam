@@ -32,17 +32,18 @@ Reference extras (not required day one):
 
 ### Path A — Flashable image (primary)
 
-GitHub Actions workflow **Build Pi image** (`.github/workflows/build-pi-image.yml`) builds a 64-bit Lite image via [pi-gen](https://github.com/RPi-Distro/pi-gen). Manual dispatch only (not on every push). Releases can attach the same artifact.
+**Primary download:** [GitHub Releases](https://github.com/JavanXD/diy-home-webcam/releases) — attach `home-webcam-*.img.xz` (no Actions login). Rebuilds use workflow **Build Pi image** (`.github/workflows/build-pi-image.yml`, manual dispatch / release publish; long, not on every push) via [pi-gen](https://github.com/RPi-Distro/pi-gen).
 
 | Image default | Value |
 |---------------|--------|
 | Hostname | `home-webcam` |
 | App tree | `/opt/home-webcam-pipeline` |
 | Camera | `example` (from `examples/`) |
+| SSH user / temp password | `pi` / `webcam-setup` (change after first boot; prefer Imager SSH key) |
 | R2 / secrets | Empty placeholders only |
 | Setup AP | `webcam-setup-ap.service` — SSID `Webcam-Setup` only when no home Wi-Fi profile exists |
 
-1. Download `home-webcam-*.img.xz` from the workflow artifact (or a GitHub Release).
+1. Download `home-webcam-*.img.xz` from the latest [Release](https://github.com/JavanXD/diy-home-webcam/releases) (preferred). Actions artifacts are for maintainers only and expire.
 2. [Raspberry Pi Imager](https://www.raspberrypi.com/software/) → **Use custom** → pick the `.img.xz`.  
    Optional: set Wi-Fi + SSH public key in Imager (recommended if you already know the home SSID).
 3. Or: `xz -dc home-webcam-*.img.xz | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync`

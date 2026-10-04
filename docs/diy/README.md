@@ -29,6 +29,8 @@ Feature tour with LAN screenshots: [root README → Features](../../README.md#fe
 
 **Buy first:** microSD + Pi 5 + HQ + CS lens + USB-C PD ([minimum kit](SHOPPING-LIST.md#minimum-kit-lan-only-microsd)). Cloudflare and NVMe are optional later.
 
+**Flashable image:** [Releases](https://github.com/JavanXD/diy-home-webcam/releases) — download `home-webcam-*.img.xz`, then [BUILD.md](BUILD.md) Path A.
+
 **Public DIY repo:** [JavanXD/diy-home-webcam](https://github.com/JavanXD/diy-home-webcam) (clean history). Roadmap / open tasks: **[TODO.md](../../TODO.md)**.
 
 Local smoke (no Pi): `make test` and `./scripts/smoke-local.sh` from the repo root.
