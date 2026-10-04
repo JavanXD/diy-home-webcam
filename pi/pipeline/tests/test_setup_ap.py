@@ -128,8 +128,9 @@ def test_home_wifi_profile_names_skips_setup_ap():
     assert home_wifi_profile_names(runner=run) == ["Cafe"]
 
 
-def test_wifi_connect_stops_setup_ap_first():
+def test_wifi_connect_stops_setup_ap_first(tmp_path):
     seen: list[list[str]] = []
+    last = tmp_path / "last-lan.json"
 
     def run(args: list[str]) -> tuple[int, str, str]:
         seen.append(args)
@@ -143,13 +144,21 @@ def test_wifi_connect_stops_setup_ap_first():
             return 0, "wlan0:wifi:connected:HomeNet\n", ""
         if args[:3] == ["nmcli", "-g", "IP4.ADDRESS"]:
             return 0, "10.0.0.5/24\n", ""
+        if args[:3] == ["nmcli", "-g", "IP4.GATEWAY"]:
+            return 0, "10.0.0.1\n", ""
         if args[:3] == ["nmcli", "-t", "-f"] and "NAME,TYPE,DEVICE" in args[3]:
             return 0, "", ""
+        if args[:3] == ["nmcli", "-t", "-f"] and "IN-USE,SSID" in args[3]:
+            return 0, "*:HomeNet\n", ""
         return 0, "", ""
 
-    result = wifi_connect("HomeNet", "secret", runner=run)
+    result = wifi_connect("HomeNet", "secret", runner=run, last_lan_path=last)
     assert result["ok"] is True
     assert result["setup_ap_stopped"] is True
+    assert result["ipv4"] == "10.0.0.5"
+    assert result["mdns"].endswith(".local")
+    assert "10.0.0.5" in (result.get("message") or "")
+    assert last.read_text(encoding="utf-8").find("10.0.0.5") >= 0
     assert any(a[:3] == ["nmcli", "connection", "down"] for a in seen)
     assert any(a[:3] == ["nmcli", "connection", "delete"] for a in seen)
     assert any("connect" in a and "HomeNet" in a for a in seen)
@@ -164,20 +173,26 @@ def test_wifi_connect_rejects_setup_ssid():
         raise AssertionError("expected WifiError")
 
 
-def test_wifi_status_flags_setup_ap():
+def test_wifi_status_flags_setup_ap(tmp_path):
     def run(args: list[str]) -> tuple[int, str, str]:
         if args[:3] == ["nmcli", "-t", "-f"] and "DEVICE,TYPE,STATE,CONNECTION" in args[3]:
             return 0, f"wlan0:wifi:connected:{SETUP_AP_CONNECTION}\n", ""
         if args[:3] == ["nmcli", "-g", "IP4.ADDRESS"]:
             return 0, "10.42.0.1/24\n", ""
+        if args[:3] == ["nmcli", "-g", "IP4.GATEWAY"]:
+            return 0, "\n", ""
         if args[:3] == ["nmcli", "-t", "-f"] and "NAME,TYPE,DEVICE" in args[3]:
             return 0, f"{SETUP_AP_CONNECTION}:802-11-wireless:wlan0\n", ""
+        if args[:3] == ["nmcli", "-t", "-f"] and "IN-USE,SSID" in args[3]:
+            return 0, "*:Webcam-Setup\n", ""
         return 0, "", ""
 
-    status = wifi_status(runner=run)
+    status = wifi_status(runner=run, last_lan_path=tmp_path / "last-lan.json")
     assert status["setup_ap"] is True
     assert status["setup_ap_ssid"] == SETUP_AP_SSID
     assert "setup/ui" in status["setup_ap_url"]
+    assert status["mdns"].endswith(".local")
+    assert status["last_lan_ipv4"] == ""
 
 
 def test_stop_setup_ap_idempotent():

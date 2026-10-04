@@ -64,7 +64,7 @@ Each port cluster has primary page links plus a collapsible **More** menu for th
 | Cluster | Primary (UI pages) | More (JSON / JPEG only) |
 |---------|---------------------|-------------------------|
 | Green `:8080` | Camera home, Maintenance | Health/Status/Debug/Maintenance (JSON), Live image |
-| Red `:8090` | Pipeline home, Schedule, Variants, Setup, Timelapse | Health/Status/Debug/System status/System logs/Schedule/Variants/Public livestream (JSON), plus that camera’s variant JPEGs when `cameras/<id>/variants/*.yaml` exists. The document title is always `Webcam`, not the camera `display_name`. Setup edits `camera.yaml` (name, place, weather URL), publish (R2 / custom S3 / local / off + test connection), and can join Wi-Fi. The password is not stored in the repo. Timelapse lists daylight days on the Pi (storage budget shown), builds MP4/GIF locally, and offers file downloads. |
+| Red `:8090` | Pipeline home, Schedule, Variants, Setup, Timelapse | Health/Status/Debug/System status/System logs/Schedule/Variants/Public livestream (JSON), plus that camera’s variant JPEGs when `cameras/<id>/variants/*.yaml` exists. The document title is always `Webcam`, not the camera `display_name`. Setup shows **Find this Pi** (hostname, `*.local`, current / last LAN IPv4), edits `camera.yaml` (name, place, weather URL), publish (R2 / custom S3 / local / off + test connection; Worker optional for hotlink), and can join Wi-Fi. The password is not stored in the repo. Timelapse lists daylight days on the Pi (storage budget shown), builds MP4/GIF locally, and offers file downloads. |
 
 More is keyboard-accessible (Arrow keys, Escape), closes on outside click, and works on touch. Endpoint lists live in `_MORE_CAM` / `_MORE_PIPE` in `chrome.py`.
 

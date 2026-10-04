@@ -241,3 +241,32 @@ def test_setup_ui_mentions_s3_providers():
     assert "Custom S3-compatible" in html
     assert "Test connection" in html
     assert "/setup/publish/test" in html
+    assert "hotlink" in html.lower() or "Worker landing page is optional" in html
+    assert "Find this Pi" in html
+    assert "find-pi-kv" in html
+    assert "*.local" in html or "mDNS" in html
+
+
+def test_wifi_status_exposes_hostname_and_last_lan(tmp_path: Path):
+    from app.wifi_nm import remember_last_lan_ipv4, wifi_status
+
+    last = tmp_path / "last-lan.json"
+    remember_last_lan_ipv4("192.168.1.50", path=last)
+
+    def run(args: list[str]) -> tuple[int, str, str]:
+        if args[:3] == ["nmcli", "-t", "-f"] and "DEVICE,TYPE,STATE,CONNECTION" in args[3]:
+            return 0, "wlan0:wifi:connected:webcam-setup-ap\n", ""
+        if args[:3] == ["nmcli", "-g", "IP4.ADDRESS"]:
+            return 0, "10.42.0.1/24\n", ""
+        if args[:3] == ["nmcli", "-t", "-f"] and "NAME,TYPE,DEVICE" in args[3]:
+            return 0, "webcam-setup-ap:802-11-wireless:wlan0\n", ""
+        if args[:3] == ["nmcli", "-t", "-f"] and "IN-USE,SSID" in args[3]:
+            return 0, "*:Webcam-Setup\n", ""
+        return 0, "", ""
+
+    status = wifi_status(runner=run, last_lan_path=last)
+    assert status["setup_ap"] is True
+    assert status["hostname"]
+    assert status["mdns"].endswith(".local")
+    assert status["last_lan_ipv4"] == "192.168.1.50"
+    assert "mdns_camera" in status["lan_urls"]

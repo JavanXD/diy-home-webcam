@@ -117,10 +117,10 @@ EOF
 # Sync Example camera from private/ (symlink target) so the Pi always gets a directory.
 "${RSYNC[@]}" --delete "$REPO_ROOT/private/cameras/example/" \
   "$TARGET:$REMOTE_ROOT/cameras/example/"
-# Other cameras/ entries (README) — no --delete so example stays.
-"$RSYNC_BIN" "${RSYNC_FLAGS[@]}" -e "$RSYNC_SSH" \
-  --exclude 'example' \
-  "$REPO_ROOT/cameras/" "$TARGET:$REMOTE_ROOT/cameras/"
+# Other cameras/ entries (README only). Do NOT use -L here: macOS openrsync can
+# re-copy cameras/example as a broken symlink and wipe the real tree above.
+"$RSYNC_BIN" -az -e "$RSYNC_SSH" \
+  "$REPO_ROOT/cameras/README.md" "$TARGET:$REMOTE_ROOT/cameras/"
 "${RSYNC[@]}" --delete --exclude '__pycache__' --exclude '*.pyc' \
   "$REPO_ROOT/shared/" "$TARGET:$REMOTE_ROOT/shared/"
 "$RSYNC_BIN" "${RSYNC_FLAGS[@]}" -e "$RSYNC_SSH" \

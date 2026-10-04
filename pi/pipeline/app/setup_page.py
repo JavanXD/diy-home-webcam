@@ -115,7 +115,7 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     IPv4 or <code>*.local</code> name below. Many Android phones do not resolve <code>*.local</code> — use the IPv4
     or your router’s Wi-Fi / DHCP client list (hostname often <code>home-webcam</code>).
   </p>
-  <dl class="kv" id="find-pi-kv"></dl>
+  <dl class="debug-grid" id="find-pi-kv"></dl>
   <p class="muted" id="find-pi-urls"></p>
 """
     wifi = """
