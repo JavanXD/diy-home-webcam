@@ -7,7 +7,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 IMAGE_DIR="${ROOT}/image"
 WORK="${IMAGE_DIR}/pi-gen"
 PIGEN_REPO="${PIGEN_REPO:-https://github.com/RPi-Distro/pi-gen.git}"
-PIGEN_REF="${PIGEN_REF:-master}"
+# Pin to bookworm-arm64 (Pi 5). master tracks trixie/armhf and breaks RELEASE=bookworm.
+PIGEN_REF="${PIGEN_REF:-bookworm-arm64}"
 
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "Re-running under sudo (pi-gen docker build needs root)…"

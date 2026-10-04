@@ -2,6 +2,7 @@
 # https://github.com/RPi-Distro/pi-gen
 
 IMG_NAME='home-webcam'
+ARCH='arm64'
 RELEASE='bookworm'
 DEPLOY_COMPRESSION='xz'
 COMPRESSION_LEVEL='6'

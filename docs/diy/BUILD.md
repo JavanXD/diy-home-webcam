@@ -32,7 +32,7 @@ Reference extras (not required day one):
 
 ### Path A — Flashable image (primary)
 
-**Primary download:** [GitHub Releases](https://github.com/JavanXD/diy-home-webcam/releases) — attach `home-webcam-*.img.xz` (no Actions login). Rebuilds use workflow **Build Pi image** (`.github/workflows/build-pi-image.yml`, manual dispatch / release publish; long, not on every push) via [pi-gen](https://github.com/RPi-Distro/pi-gen).
+**Primary download:** [GitHub Releases](https://github.com/JavanXD/diy-home-webcam/releases) — attach `home-webcam-*.img.xz` (no Actions login). Rebuilds use workflow **Build Pi image** (`.github/workflows/build-pi-image.yml`, manual dispatch / release publish; long, not on every push) via [pi-gen](https://github.com/RPi-Distro/pi-gen) **`bookworm-arm64`** (64-bit Lite for Pi 5).
 
 | Image default | Value |
 |---------------|--------|
