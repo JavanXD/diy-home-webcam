@@ -10,8 +10,7 @@ set -euo pipefail
 TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
   echo "usage: $0 pi@home-webcam.local" >&2
-  echo "  tip: set -a && source ~/Projects/.secrets/raspicam.env && set +a" >&2
-  echo "       $0 \${RASPICAM_SSH_USER}@\${RASPICAM_HOST}" >&2
+  echo "  tip: optional PI_SSH_KEY / PI_SSH_USER / PI_SSH_HOST (or pass the target)" >&2
   exit 1
 fi
 
@@ -20,20 +19,20 @@ REMOTE_ROOT="${REMOTE_ROOT:-/opt/home-webcam-pipeline}"
 
 
 SSH_OPTS=(-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new)
-if [[ -n "${RASPICAM_SSH_KEY:-}" ]]; then
-  KEY="${RASPICAM_SSH_KEY/#\~/$HOME}"
+if [[ -n "${PI_SSH_KEY:-}" ]]; then
+  KEY="${PI_SSH_KEY/#\~/$HOME}"
   SSH_OPTS+=(-i "$KEY")
 fi
 RSYNC_SSH="ssh ${SSH_OPTS[*]}"
 
-# Run a root shell on the Pi. If RASPICAM_SSH_PASSWORD is set, prime sudo -S once
+# Run a root shell on the Pi. If PI_SSH_PASSWORD is set, prime sudo -S once
 # (do not mix the password into the script stdin — NOPASSWD/cached sudo would
 # otherwise execute the password as the first script line).
 remote_root() {
   local script
   script="$(cat)"
-  if [[ -n "${RASPICAM_SSH_PASSWORD:-}" ]]; then
-    printf '%s\n' "$RASPICAM_SSH_PASSWORD" | \
+  if [[ -n "${PI_SSH_PASSWORD:-}" ]]; then
+    printf '%s\n' "$PI_SSH_PASSWORD" | \
       ssh "${SSH_OPTS[@]}" "$TARGET" 'sudo -S -p "" true'
   fi
   ssh "${SSH_OPTS[@]}" "$TARGET" 'sudo bash -s' <<<"$script"

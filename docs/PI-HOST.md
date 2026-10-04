@@ -25,19 +25,20 @@ Portable network: [`pi/host/network.env`](../pi/host/network.env) (see [Portable
 ## Remigrate OS to NVMe (from Mac)
 
 ```bash
-set -a && source ~/Projects/.secrets/raspicam.env && set +a
-KEY="${RASPICAM_SSH_KEY/#\~/$HOME}"
-TARGET="${RASPICAM_SSH_USER}@${RASPICAM_HOST}"
+# Optional: export PI_SSH_KEY / PI_SSH_USER / PI_SSH_HOST (or pass pi@home-webcam.local).
+KEY="${PI_SSH_KEY:-}"
+KEY="${KEY/#\~/$HOME}"
+TARGET="${PI_SSH_USER:-pi}@${PI_SSH_HOST:-home-webcam.local}"
 
 # 1) Push code (including host scripts)
 ./pi/scripts/sync-to-pi.sh "$TARGET"
 
 # 2) On Pi: must be booted from SD for migrate. If already on NVMe, skip to verify.
-ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
+ssh ${KEY:+-i "$KEY"} -o IdentitiesOnly=yes "$TARGET" \
   'sudo /opt/home-webcam-pipeline/pi/scripts/remigrate-to-nvme.sh'
 # Pi reboots. Wait for SSH, then:
 
-ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
+ssh ${KEY:+-i "$KEY"} -o IdentitiesOnly=yes "$TARGET" \
   'sudo /opt/home-webcam-pipeline/pi/scripts/verify-host.sh'
 ```
 
@@ -56,7 +57,7 @@ sudo ./pi/scripts/verify-host.sh
 ./pi/camera/scripts/deploy.sh pi@<pi-host>
 ./pi/pipeline/scripts/deploy.sh pi@<pi-host>
 # or full tree: ./pi/scripts/sync-to-pi.sh pi@<pi-host>
-# (prefer RASPICAM_HOST=<pi-host>; home-webcam.local optional)
+# (prefer PI_SSH_HOST=<pi-host>; home-webcam.local optional)
 ```
 
 ## Runtime data ownership (`webcam`)
@@ -182,7 +183,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 ### Power-on path (wifi primary)
 
 1. Plug into power (Ethernet optional; day-to-day cable stays unplugged).
-2. NetworkManager autoconnects saved WiFi → DHCP → DNS (Fritz → `.150`).
+2. NetworkManager autoconnects saved WiFi → DHCP → DNS (optional router reservation).
 3. `network-online.target` (~seconds after wifi).
 4. `webcam-camera` → `webcam-pipeline` → nginx / avahi.
 5. LAN UI: `http://<pi-host>:8080/` (`home-webcam.local` optional). Host uptime on Camera / Pipeline home from `/health` (`system_uptime_seconds`).

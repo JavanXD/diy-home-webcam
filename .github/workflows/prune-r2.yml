@@ -50,7 +50,7 @@ jobs:
           if [[ -z "${AWS_ACCESS_KEY_ID:-}" || -z "${AWS_SECRET_ACCESS_KEY:-}" || -z "${AWS_ENDPOINT_URL:-}" || -z "${R2_BUCKET:-}" ]]; then
             echo "R2 S3 secrets not set — skipping prune."
             echo "Add AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ENDPOINT_URL, R2_BUCKET"
-            echo "(from ~/Projects/.secrets/schellbronn-webcam-r2.env once R2 is enabled)."
+            echo "(from your local R2 S3 env file once R2 is enabled)."
             exit 0
           fi
           args=(--r2 --prefix history/ --days "${DAYS}")

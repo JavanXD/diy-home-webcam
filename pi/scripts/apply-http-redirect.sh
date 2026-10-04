@@ -37,7 +37,7 @@ if [[ ! -f "$CERT" || ! -f "$KEY" ]]; then
   openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
     -keyout "$KEY" -out "$CERT" \
     -subj "/CN=home-webcam.local/O=Home webcam/OU=LAN" \
-    -addext "subjectAltName=DNS:home-webcam.local,DNS:raspicam,IP:127.0.0.1"
+    -addext "subjectAltName=DNS:home-webcam.local,DNS:home-webcam,IP:127.0.0.1"
   chmod 640 "$KEY"
   chown root:root "$CERT" "$KEY"
 fi

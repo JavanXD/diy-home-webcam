@@ -38,7 +38,7 @@ If Imager did **not** configure Wi-Fi, use the setup access point:
 3. Scan → pick your home network → **Join Wi-Fi**. The Pi leaves the setup AP and joins home.
 4. Switch the phone back to home Wi-Fi. Open `http://home-webcam.local:8080/` (or the address from your router’s DHCP list).
 
-The setup AP starts **only** when there is no saved home Wi-Fi profile, Wi-Fi is not already associated, and ethernet has no IPv4. A Pi that already has NetworkManager Wi-Fi (including this deployment’s this deployment board) will **not** enter AP mode. Disable forever: `sudo touch /etc/webcam-pipeline/setup-ap.disabled`.
+The setup AP starts **only** when there is no saved home Wi-Fi profile, Wi-Fi is not already associated, and ethernet has no IPv4. A Pi that already has NetworkManager Wi-Fi will **not** enter AP mode. Disable forever: `sudo touch /etc/webcam-pipeline/setup-ap.disabled`.
 
 Still add your own crops, privacy masks, and Cloudflare keys before publishing.
 
@@ -86,7 +86,7 @@ Open `http://<pi>:8080/` on a laptop on the same LAN. If the camera is missing, 
 
 ## Focus
 
-This build is the Kubii pair in [SHOPPING-LIST.md](SHOPPING-LIST.md): HQ camera SC0261 and CS lens LN050 (16 mm).
+This build is the HQ + 16 mm pair in [SHOPPING-LIST.md](SHOPPING-LIST.md): camera SC0261 and CS lens LN050.
 
 The camera ships with a C-mount adapter ring screwed onto the mount. This lens is CS-mount. The ring must come off. With the ring left on, a distant subject stays soft at every stop of the focus ring. Turning past that stop unscrews the whole lens from the camera. That thread is the mount, not the focus.
 

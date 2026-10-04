@@ -33,7 +33,7 @@ The green/red navbar can jump across ports; page **bodies** stay service-scoped.
 
 | Item | Detail |
 |------|--------|
-| UI | `http://raspicam.local:8090/variants/ui` (primary red nav **Variants**) |
+| UI | `http://home-webcam.local:8090/variants/ui` (primary red nav **Variants**) |
 | Flow | Create → edit crop/masks/output/overlays → Preview → Save; mark one **public** variant as the **public livestream**. Gallery splits **Private (LAN-only)** (badge “LAN only”; home network only; not for the public website/livestream; e.g. Home Assistant) vs **Public variants**. |
 | Create | `POST /variants` — name + template (`private` or `landscape-public`); JPEG filename auto `{name}.jpg`; atomic YAML under `cameras/<id>/variants/` |
 | Editable | `description`, `crop` (mode, LTRB, width/height fracs, zoom, aspect_ratio), `privacy.masks` (drag rectangles on the large **Edit masks** canvas, or one line per mask; optional per-mask `label` / `note` — admin only, not drawn), `output.width` / `height` / `jpeg_quality`, `timestamp` (incl. `stroke_width`), `site_badge` (incl. `stroke_width`), `artistic` |
@@ -52,7 +52,7 @@ The green/red navbar can jump across ports; page **bodies** stay service-scoped.
 ### Sync / pull
 
 1. Tune on Pi via `/variants/ui` → YAML updates under `/opt/home-webcam-pipeline/cameras/`.
-2. **Pull before sync:** `./pi/scripts/pull-cameras-from-pi.sh pi@raspicam.local`
+2. **Pull before sync:** `./pi/scripts/pull-cameras-from-pi.sh pi@home-webcam.local`
 3. `sync-to-pi.sh` uses `--delete` on `cameras/` — without a pull, Mac YAML overwrites Pi edits (including newly created variants).
 
 `webcam-pipeline` needs `ReadWritePaths=…/cameras` and `fix-data-perms.sh` ownership so the `webcam` user can write variant YAML.

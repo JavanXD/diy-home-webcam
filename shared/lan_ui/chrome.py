@@ -57,7 +57,7 @@ def _nav_link(item: dict[str, object], active: str | None) -> str:
     cls = ' class="active"' if active and iid == active else ""
     return (
         f'<a{cls} data-lan-port="{port}" data-lan-path="{escape(path, quote=True)}" '
-        f'href="http://raspicam.local:{port}{escape(path, quote=True)}">{label}</a>'
+        f'href="http://home-webcam.local:{port}{escape(path, quote=True)}">{label}</a>'
     )
 
 
@@ -68,7 +68,7 @@ def _more_item(item: dict[str, str | int], default_port: int) -> str:
     return (
         f'<a role="menuitem" data-lan-port="{port}" '
         f'data-lan-path="{escape(path, quote=True)}" '
-        f'href="http://raspicam.local:{port}{escape(path, quote=True)}">{label}</a>'
+        f'href="http://home-webcam.local:{port}{escape(path, quote=True)}">{label}</a>'
     )
 
 
