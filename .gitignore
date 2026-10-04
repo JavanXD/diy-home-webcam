@@ -42,6 +42,6 @@ npm-debug.log*
 # Local agent / vision preview dumps (never commit)
 .tmp-preview/
 
-# Example-only ops overlay (see private/README.md)
+# Private ops overlay is not part of this public tree
 
 
