@@ -16,7 +16,7 @@ Enough to see a private JPEG on your home network. Boot from microSD; skip NVMe,
 | Camera | [HQ Camera SC0261](https://www.raspberrypi.com/products/raspberry-pi-hq-camera/) (IMX477, C–CS) | Includes 5 mm C–CS adapter ring — remove it before fitting a CS lens. | ~56 € |
 | Lens | Arducam CS-mount **16 mm** (LN050 / CS2316ZM02) *or shorter* | Manual focus + aperture. 16 mm ≈24° HFOV (distant tower). **8 mm / 12 mm** CS lenses see more garden / yard — pick for your distance. Closest focus on LN050 ~0.2 m. | ~26 € (16 mm) |
 | Camera cable | Pi 5 CSI flex (15-pin camera ↔ 22-pin Pi) | 30–50 cm is typical for a window sill next to the board. | ~3 € |
-| Power | Official-class USB-C PD for Pi 5 | Typically **5 V / 5 A / 27 W**. Weak phone chargers brown out under load. Not named here. | — |
+| Power | [Official Raspberry Pi 5 USB-C PD PSU](https://www.raspberrypi.com/products/27w-power-supply/) (27 W class) | **5 V / 5 A / 27 W**. Official supply included with this setup. Weak phone chargers brown out under load. | — |
 | Network | Wi-Fi day to day; Ethernet optional | DHCP. Router reservation optional. | — |
 
 **You do not need** Cloudflare, a Worker, Home Assistant, NVMe, or an M.2 HAT for LAN-only use. Publish stays **Off** until you want a public JPEG ([PUBLISH.md](PUBLISH.md)).
