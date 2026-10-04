@@ -76,9 +76,9 @@ flowchart TD
 
 **Android note:** many Android browsers do **not** resolve `*.local` (mDNS) reliably. Prefer the IPv4 from Setup or the router’s client list. iOS / macOS / most Linux desktops usually resolve `home-webcam.local` when Avahi is running on the Pi.
 
-The setup AP starts **only** when there is no saved home Wi-Fi profile, Wi-Fi is not already associated, and ethernet has no IPv4. A Pi that already has NetworkManager Wi-Fi will **not** enter AP mode. Disable forever: `sudo touch /etc/webcam-pipeline/setup-ap.disabled`.
+The setup AP starts **only** when there is no saved home Wi-Fi profile, Wi-Fi is not already associated, and ethernet has no IPv4. A Pi that already has NetworkManager Wi-Fi will **not** enter AP mode. After a successful **Join Wi-Fi**, the AP is torn down and `/var/lib/webcam-pipeline/setup-ap.disabled` is written so it stays off. Operator forever-off: `sudo touch /etc/webcam-pipeline/setup-ap.disabled`.
 
-Still add your own crops and privacy masks before a public JPEG. Cloudflare / Worker keys are optional — see [PUBLISH.md](PUBLISH.md).
+Security baseline (trusted LAN, no port-forward, SSH keys): [SECURITY.md](SECURITY.md). Still add your own crops and privacy masks before a public JPEG. Cloudflare / Worker keys are optional — see [PUBLISH.md](PUBLISH.md).
 
 **Local pi-gen (optional):** needs Docker and privilege; from the repo root run `./image/build-with-pi-gen.sh`. Output under `image/pi-gen/deploy/` (gitignored).
 

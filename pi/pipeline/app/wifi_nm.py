@@ -5,7 +5,7 @@
 
 Setup AP (``Webcam-Setup``) is started by ``pi/scripts/webcam-setup-ap.sh`` only
 when no home Wi-Fi profile exists. After a successful join from Setup, this
-module tears the AP down so the radio can stay on the home network.
+module tears the AP down and writes a runtime disable marker so the AP stays off.
 """
 
 from __future__ import annotations
@@ -15,6 +15,8 @@ import os
 import shutil
 import socket
 import subprocess
+import threading
+import time
 from pathlib import Path
 from typing import Any, Callable
 
@@ -28,6 +30,17 @@ SETUP_AP_SSID = "Webcam-Setup"
 SETUP_AP_GATEWAY = "10.42.0.1"
 _SETUP_AP_NAMES = frozenset({SETUP_AP_CONNECTION, "Hotspot"})
 _DEFAULT_LAST_LAN_PATH = Path("/var/lib/webcam-pipeline/last-lan.json")
+# Writable by the webcam service user (unlike /etc/…/setup-ap.disabled).
+_DEFAULT_RUNTIME_DISABLE = Path("/var/lib/webcam-pipeline/setup-ap.disabled")
+
+# Light lockout against scripted join spam on the open LAN Setup endpoint.
+_JOIN_WINDOW_SEC = 60.0
+_JOIN_MAX = 5
+_SCAN_WINDOW_SEC = 60.0
+_SCAN_MAX = 30
+_join_times: list[float] = []
+_scan_times: list[float] = []
+_rate_lock = threading.Lock()
 
 
 class WifiError(ValueError):
@@ -149,6 +162,9 @@ def network_glance(*, runner: Runner | None = None) -> dict[str, Any]:
 
 
 def wifi_scan(*, runner: Runner | None = None) -> dict[str, Any]:
+    # Rate-limit live nmcli only (injected runners are tests).
+    if runner is None:
+        _rate_check(_scan_times, _SCAN_MAX, _SCAN_WINDOW_SEC, "Wi-Fi scan")
     run = runner or _run
     code, out, err = run(
         ["nmcli", "-t", "-f", "IN-USE,SSID,SIGNAL,SECURITY", "device", "wifi", "list", "--rescan", "yes"]
@@ -164,7 +180,10 @@ def wifi_connect(
     *,
     runner: Runner | None = None,
     last_lan_path: Path | None = None,
+    runtime_disable_path: Path | None = None,
 ) -> dict[str, Any]:
+    if runner is None:
+        _rate_check(_join_times, _JOIN_MAX, _JOIN_WINDOW_SEC, "Wi-Fi join")
     run = runner or _run
     name = str(ssid or "").strip()
     secret = str(password or "")
@@ -184,6 +203,7 @@ def wifi_connect(
         raise WifiError(_public_error(err or out, secret=secret))
     # Ensure the setup hotspot does not autoconnect again.
     stop_setup_ap(runner=run)
+    disabled = mark_setup_ap_disabled(path=runtime_disable_path)
     status = wifi_status(runner=run, last_lan_path=last_lan_path)
     ipv4 = str(status.get("ipv4") or "")
     if ipv4 and ipv4 != SETUP_AP_GATEWAY:
@@ -207,7 +227,24 @@ def wifi_connect(
         "lan_urls": urls,
         "message": tip,
         "setup_ap_stopped": True,
+        "setup_ap_disabled": disabled,
     }
+
+
+def mark_setup_ap_disabled(*, path: Path | None = None) -> bool:
+    """Best-effort runtime disable so Webcam-Setup does not return after join."""
+    target = path or _runtime_disable_path()
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("# Written after successful Setup Wi-Fi join\n", encoding="utf-8")
+        return True
+    except OSError:
+        return False
+
+
+def runtime_setup_ap_disabled(*, path: Path | None = None) -> bool:
+    target = path or _runtime_disable_path()
+    return target.is_file()
 
 
 def host_identity() -> dict[str, str]:
@@ -308,11 +345,16 @@ def should_start_setup_ap(
     *,
     runner: Runner | None = None,
     disabled_marker: bool = False,
+    runtime_disabled: bool | None = None,
     enabled: bool = True,
 ) -> tuple[bool, str]:
     """Pure decision helper (also used by tests). Matches webcam-setup-ap.sh rules."""
     if disabled_marker:
         return False, "disabled marker present"
+    if runtime_disabled is None:
+        runtime_disabled = runtime_setup_ap_disabled()
+    if runtime_disabled:
+        return False, "runtime disable marker present"
     if not enabled:
         return False, "SETUP_AP_ENABLED is off"
     run = runner or _run
@@ -453,6 +495,20 @@ def _public_error(text: str, *, secret: str = "") -> str:
 def _last_lan_path() -> Path:
     override = (os.environ.get("WEBCAM_LAST_LAN_PATH") or "").strip()
     return Path(override) if override else _DEFAULT_LAST_LAN_PATH
+
+
+def _runtime_disable_path() -> Path:
+    override = (os.environ.get("WEBCAM_SETUP_AP_DISABLE_RUNTIME") or "").strip()
+    return Path(override) if override else _DEFAULT_RUNTIME_DISABLE
+
+
+def _rate_check(bucket: list[float], max_calls: int, window_sec: float, label: str) -> None:
+    now = time.time()
+    with _rate_lock:
+        bucket[:] = [t for t in bucket if now - t < window_sec]
+        if len(bucket) >= max_calls:
+            raise WifiError(f"Too many {label} attempts — wait a minute and try again")
+        bucket.append(now)
 
 
 def _looks_like_ipv4(value: str) -> bool:

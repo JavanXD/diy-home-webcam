@@ -48,7 +48,9 @@ def test_should_not_start_when_home_profile_exists():
             ),
         }
     )
-    ok, reason = should_start_setup_ap(runner=run, enabled=True, disabled_marker=False)
+    ok, reason = should_start_setup_ap(
+        runner=run, enabled=True, disabled_marker=False, runtime_disabled=False
+    )
     assert ok is False
     assert "profile" in reason
 
@@ -63,7 +65,7 @@ def test_should_not_start_when_ethernet_up():
             return 0, "", ""
         return 0, "", ""
 
-    ok, reason = should_start_setup_ap(runner=run)
+    ok, reason = should_start_setup_ap(runner=run, runtime_disabled=False)
     assert ok is False
     assert "ethernet" in reason
 
@@ -83,7 +85,7 @@ def test_should_not_start_when_wifi_associated():
             ),
         }
     )
-    ok, reason = should_start_setup_ap(runner=run)
+    ok, reason = should_start_setup_ap(runner=run, runtime_disabled=False)
     assert ok is False
     assert "associated" in reason or "profile" in reason
 
@@ -103,15 +105,17 @@ def test_should_start_when_bare():
             ),
         }
     )
-    ok, reason = should_start_setup_ap(runner=run)
+    ok, reason = should_start_setup_ap(runner=run, runtime_disabled=False)
     assert ok is True
     assert "no home" in reason
 
 
 def test_disabled_marker_and_enabled_flag():
-    ok, _ = should_start_setup_ap(disabled_marker=True)
+    ok, _ = should_start_setup_ap(disabled_marker=True, runtime_disabled=False)
     assert ok is False
-    ok, _ = should_start_setup_ap(enabled=False)
+    ok, _ = should_start_setup_ap(enabled=False, runtime_disabled=False)
+    assert ok is False
+    ok, _ = should_start_setup_ap(runtime_disabled=True, disabled_marker=False)
     assert ok is False
 
 
@@ -152,9 +156,18 @@ def test_wifi_connect_stops_setup_ap_first(tmp_path):
             return 0, "*:HomeNet\n", ""
         return 0, "", ""
 
-    result = wifi_connect("HomeNet", "secret", runner=run, last_lan_path=last)
+    disable = tmp_path / "setup-ap.disabled"
+    result = wifi_connect(
+        "HomeNet",
+        "secret",
+        runner=run,
+        last_lan_path=last,
+        runtime_disable_path=disable,
+    )
     assert result["ok"] is True
     assert result["setup_ap_stopped"] is True
+    assert result["setup_ap_disabled"] is True
+    assert disable.is_file()
     assert result["ipv4"] == "10.0.0.5"
     assert result["mdns"].endswith(".local")
     assert "10.0.0.5" in (result.get("message") or "")

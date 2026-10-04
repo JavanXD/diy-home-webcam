@@ -25,6 +25,7 @@ from .publish_settings import (
     read_publish,
     save_publish,
 )
+from .path_safety import safe_camera_id, safe_jpeg_filename
 from .wifi_nm import WifiError, network_glance, wifi_connect, wifi_scan, wifi_status
 from .system_ops import (
     SystemOpsError,
@@ -2137,11 +2138,18 @@ def make_handler(
                 path.startswith("/health")
                 or path.startswith("/system/")
                 or path.startswith("/schedule/status")
+                or path.startswith("/setup/wifi")
                 or "/variants/" in path
                 or path.startswith("/timelapse/")
             ):
                 return
             super().log_message(fmt, *args)
+
+        def _security_headers(self) -> None:
+            # LAN appliance: no CORS (browsers stay same-origin). Light MIME sniffing guard.
+            self.send_header("X-Content-Type-Options", "nosniff")
+            self.send_header("X-Frame-Options", "SAMEORIGIN")
+            self.send_header("Referrer-Policy", "no-referrer")
 
         def _json(self, code: int, payload: dict[str, Any]) -> None:
             body = json.dumps(payload, indent=2).encode("utf-8")
@@ -2149,6 +2157,7 @@ def make_handler(
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "no-store")
+            self._security_headers()
             self.end_headers()
             self.wfile.write(body)
 
@@ -2158,6 +2167,7 @@ def make_handler(
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.send_header("Cache-Control", "private, max-age=30")
+            self._security_headers()
             self.end_headers()
             self.wfile.write(body)
 
@@ -2190,6 +2200,7 @@ def make_handler(
             else:
                 self.send_header("Cache-Control", "no-store")
             self.send_header("ETag", etag)
+            self._security_headers()
             self.end_headers()
             self.wfile.write(data)
 
@@ -2566,7 +2577,10 @@ def make_handler(
                 and parts[0] == "cameras"
                 and parts[2] == "original.jpg"
             ):
-                camera_id = parts[1]
+                camera_id = safe_camera_id(parts[1])
+                if camera_id is None:
+                    self._json(400, {"error": "invalid camera id"})
+                    return
                 src: Path | None = None
                 try:
                     candidate = vedit.original_path(repo_root, camera_id)
@@ -2598,7 +2612,11 @@ def make_handler(
                 return
 
             if len(parts) == 4 and parts[0] == "cameras" and parts[2] == "variants":
-                camera_id, filename = parts[1], parts[3]
+                camera_id = safe_camera_id(parts[1])
+                filename = safe_jpeg_filename(parts[3])
+                if camera_id is None or filename is None:
+                    self._json(400, {"error": "invalid camera or variant path"})
+                    return
                 name = filename.rsplit(".", 1)[0]
                 variant_path = state.resolve_variant_path(camera_id, name)
                 disk_lookup_error: str | None = None
@@ -2656,7 +2674,10 @@ def make_handler(
                 and private_alias.endswith(".jpg")
                 and "/" not in private_alias
             ):
-                camera_id = private_alias[: -len(".jpg")]
+                camera_id = safe_camera_id(private_alias[: -len(".jpg")])
+                if camera_id is None:
+                    self._json(400, {"error": "invalid camera id"})
+                    return
                 self.path = f"/cameras/{camera_id}/variants/private.jpg"
                 return self.do_GET()
 
@@ -2823,11 +2844,14 @@ def make_handler(
             if path == "/setup/wifi":
                 try:
                     body = self._read_json_body(length) if length else {}
-                    result = wifi_connect(
-                        str(body.get("ssid") or ""),
-                        str(body.get("password") or ""),
-                    )
+                    require_confirm(body)
+                    # Never log the password; clear local ref after connect.
+                    secret = str(body.get("password") or "")
+                    result = wifi_connect(str(body.get("ssid") or ""), secret)
+                    secret = ""
                     self._json(200, result)
+                except SystemOpsError as exc:
+                    self._json(400, {"error": str(exc)})
                 except WifiError as exc:
                     self._json(400, {"error": str(exc)})
                 except ValueError as exc:

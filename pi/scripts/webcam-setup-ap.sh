@@ -20,6 +20,8 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 ENV_FILE="${WEBCAM_SETUP_AP_ENV:-/etc/webcam-setup-ap.env}"
 REPO_ENV="${ROOT}/pi/host/setup-ap.env"
 DISABLE_MARKER="${WEBCAM_SETUP_AP_DISABLE:-/etc/webcam-pipeline/setup-ap.disabled}"
+# Written by Setup UI after a successful home Wi-Fi join (webcam user can write here).
+RUNTIME_DISABLE="${WEBCAM_SETUP_AP_DISABLE_RUNTIME:-/var/lib/webcam-pipeline/setup-ap.disabled}"
 CAPTIVE_UNIT="webcam-captive-redirect.service"
 
 if [[ -f "$ENV_FILE" ]]; then
@@ -173,6 +175,10 @@ should_start() {
     log "disabled marker present ($DISABLE_MARKER) — skip"
     return 1
   fi
+  if [[ -f "$RUNTIME_DISABLE" ]]; then
+    log "runtime disable marker present ($RUNTIME_DISABLE) — skip"
+    return 1
+  fi
   case "${SETUP_AP_ENABLED,,}" in
     no|false|0|off) log "SETUP_AP_ENABLED=$SETUP_AP_ENABLED — skip"; return 1 ;;
   esac
@@ -202,6 +208,7 @@ do_status() {
   echo "active=${active}"
   echo "gateway=${SETUP_AP_GATEWAY}"
   echo "disable_marker=$([[ -f "$DISABLE_MARKER" ]] && echo yes || echo no)"
+  echo "runtime_disable=$([[ -f "$RUNTIME_DISABLE" ]] && echo yes || echo no)"
   echo "ethernet_up=$(ethernet_up && echo yes || echo no)"
   echo "wifi_home_associated=$(wifi_home_associated && echo yes || echo no)"
   echo "home_wifi_profiles=${profiles:-}"

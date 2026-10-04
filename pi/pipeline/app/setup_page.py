@@ -354,7 +354,7 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
       var res = await window.lanUi.fetchJson("/setup/wifi", {{
         method: "POST",
         headers: {{ "Content-Type": "application/json" }},
-        body: JSON.stringify({{ ssid: ssid, password: val("psk") }})
+        body: JSON.stringify({{ confirm: true, ssid: ssid, password: val("psk") }})
       }});
       document.getElementById("psk").value = "";
       var joinedBits = [];

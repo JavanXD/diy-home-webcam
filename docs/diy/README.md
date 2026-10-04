@@ -23,6 +23,7 @@ Feature tour with LAN screenshots: [root README → Features](../../README.md#fe
 |-----|------------|
 | [SHOPPING-LIST.md](SHOPPING-LIST.md) | **Minimum SD kit** first; NVMe/HAT/tall stand = reference build |
 | [BUILD.md](BUILD.md) | Flash → setup AP → find the Pi on LAN → focus → optional publish / HA |
+| [SECURITY.md](SECURITY.md) | Threat model (trusted LAN), what is exposed, SSH / no port-forward / setup AP |
 | [PUBLISH.md](PUBLISH.md) | Off / local outbox / R2 / custom S3 — public object URL without a Worker |
 | [BEFORE-PUBLIC.md](BEFORE-PUBLIC.md) | Strip checklist if you add site-specific files before publishing |
 | [examples/README.md](../../examples/README.md) | Camera / pipeline / Worker / HA templates |

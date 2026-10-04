@@ -14,11 +14,13 @@ Open a private GitHub security advisory on this repository, or email **mail@java
 
 Do not port-forward `:8080` or `:8090` to the internet. The maintenance switch and the variants editor can change what the public JPEG shows.
 
+**DIY threat model, SSH, setup AP, and hardening checklist:** [docs/diy/SECURITY.md](docs/diy/SECURITY.md).
+
 ## Secrets
 
-R2 credentials belong in `/etc/webcam-pipeline/env` on the Pi (mode `640`, owner `root`, group `webcam`). The template is [`examples/pi/r2.env`](examples/pi/r2.env). Never commit keys, SSH private keys, or Wi-Fi PSKs.
+R2 credentials belong in `/etc/webcam-pipeline/env` on the Pi (mode `640`, owner `root`, group `webcam`). The template is [`examples/pi/r2.env`](examples/pi/r2.env). Never commit keys, SSH private keys, or Wi-Fi PSKs. The Setup UI reports whether a secret is set; it never returns the secret value.
 
-The optional first-boot setup AP (`Webcam-Setup`) uses a **published temporary WPA2 password** (`webcam-setup` in the DIY docs). Anyone nearby who knows it can open Setup and change Wi-Fi. It starts only when no home Wi-Fi profile exists; disable with `/etc/webcam-pipeline/setup-ap.disabled`. Flashable images do not bake R2 keys.
+The optional first-boot setup AP (`Webcam-Setup`) uses a **published temporary WPA2 password** (`webcam-setup` in the DIY docs). Anyone nearby who knows it can open Setup and change Wi-Fi. It starts only when no home Wi-Fi profile exists; a successful Setup join tears it down and writes `/var/lib/webcam-pipeline/setup-ap.disabled`. Operator forever-off: `/etc/webcam-pipeline/setup-ap.disabled`. Flashable images do not bake R2 keys.
 
 ## Privacy masks
 
