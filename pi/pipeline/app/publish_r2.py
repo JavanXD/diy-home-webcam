@@ -9,6 +9,10 @@ from typing import Any
 
 log = logging.getLogger("pipeline.publish")
 
+# S3-compatible backends (Cloudflare R2, AWS S3, MinIO, Wasabi, B2 S3 API, …).
+# "r2" remains accepted as an alias for existing pipeline.yaml files.
+S3_BACKENDS = frozenset({"s3", "r2"})
+
 
 @dataclass
 class PublishResult:
@@ -19,12 +23,89 @@ class PublishResult:
     skipped: bool = False
 
 
+def s3_settings(publish_cfg: dict[str, Any]) -> dict[str, Any]:
+    """Nested S3 settings: prefer ``s3:``, fall back to legacy ``r2:``."""
+    cfg = publish_cfg or {}
+    s3 = cfg.get("s3")
+    if isinstance(s3, dict) and s3:
+        return dict(s3)
+    r2 = cfg.get("r2")
+    if isinstance(r2, dict):
+        return dict(r2)
+    return {}
+
+
+def resolve_bucket(s3: dict[str, Any]) -> str | None:
+    return (
+        s3.get("bucket")
+        or os.environ.get("S3_BUCKET")
+        or os.environ.get("R2_BUCKET")
+        or None
+    )
+
+
+def resolve_endpoint(s3: dict[str, Any]) -> str | None:
+    endpoint = s3.get("endpoint_url") or os.environ.get("AWS_ENDPOINT_URL")
+    if endpoint:
+        return str(endpoint).strip() or None
+    account = (os.environ.get("CLOUDFLARE_ACCOUNT_ID") or "").strip()
+    if account and account != "replace-me":
+        return f"https://{account}.r2.cloudflarestorage.com"
+    return None
+
+
+def resolve_region(s3: dict[str, Any]) -> str:
+    return str(
+        s3.get("region")
+        or os.environ.get("AWS_DEFAULT_REGION")
+        or os.environ.get("AWS_REGION")
+        or "auto"
+    )
+
+
+def resolve_force_path_style(s3: dict[str, Any]) -> bool:
+    if "force_path_style" in s3:
+        return bool(s3.get("force_path_style"))
+    raw = (os.environ.get("AWS_S3_FORCE_PATH_STYLE") or "").strip().lower()
+    return raw in {"1", "true", "yes", "on"}
+
+
+def make_s3_client(s3: dict[str, Any]):
+    """Build a boto3 S3 client from nested settings + process environment."""
+    import boto3
+    from botocore.config import Config
+
+    endpoint = resolve_endpoint(s3)
+    if not endpoint:
+        raise ValueError("endpoint_url / AWS_ENDPOINT_URL missing")
+    bucket = resolve_bucket(s3)
+    if not bucket:
+        raise ValueError("bucket / S3_BUCKET / R2_BUCKET missing")
+    access = os.environ.get("AWS_ACCESS_KEY_ID")
+    secret = os.environ.get("AWS_SECRET_ACCESS_KEY")
+    if not access or not secret:
+        raise ValueError("AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY not set")
+
+    kwargs: dict[str, Any] = {
+        "endpoint_url": endpoint,
+        "region_name": resolve_region(s3),
+        "aws_access_key_id": access,
+        "aws_secret_access_key": secret,
+    }
+    if resolve_force_path_style(s3):
+        kwargs["config"] = Config(s3={"addressing_style": "path"})
+    client = boto3.client("s3", **kwargs)
+    return client, bucket, endpoint
+
+
 class Publisher:
     def __init__(self, publish_cfg: dict[str, Any], repo_root: Path) -> None:
         self.cfg = publish_cfg or {}
         self.repo_root = repo_root
         self.enabled = bool(self.cfg.get("enabled"))
-        self.backend = str(self.cfg.get("backend") or "local")
+        raw_backend = str(self.cfg.get("backend") or "local").strip().lower()
+        # Normalize legacy "r2" to "s3" for runtime; keep reporting the effective backend.
+        self.backend = "s3" if raw_backend in S3_BACKENDS else raw_backend
         self.outbox = repo_root / (self.cfg.get("local_outbox") or "data/outbox")
         self._last_history_at: dict[str, float] = {}
         self._s3 = None
@@ -35,45 +116,44 @@ class Publisher:
             log.info("[publish] disabled — public variants stay local only")
             return
 
-        if self.backend == "r2":
-            self._init_r2()
+        if self.backend == "s3":
+            self._init_s3()
         else:
+            self.backend = "local"
             self.outbox.mkdir(parents=True, exist_ok=True)
             log.info("[publish] backend=local outbox=%s", self.outbox)
 
-    def _init_r2(self) -> None:
-        import boto3
+    def _init_s3(self) -> None:
+        s3 = s3_settings(self.cfg)
+        try:
+            client, bucket, endpoint = make_s3_client(s3)
+        except ValueError as exc:
+            self.init_error = str(exc)
+            self.fallback_note = "falling back to local outbox (fail-safe)"
+            log.warning("[publish] %s — %s", self.init_error, self.fallback_note)
+            self.backend = "local"
+            self.outbox.mkdir(parents=True, exist_ok=True)
+            return
+        except Exception as exc:  # noqa: BLE001 — do not crash pipeline
+            self.init_error = f"S3 client init failed: {exc}"
+            self.fallback_note = "falling back to local outbox (fail-safe)"
+            log.warning("[publish] %s — %s", self.init_error, self.fallback_note)
+            self.backend = "local"
+            self.outbox.mkdir(parents=True, exist_ok=True)
+            return
 
-        r2 = self.cfg.get("r2") or {}
-        endpoint = r2.get("endpoint_url") or os.environ.get("AWS_ENDPOINT_URL")
-        if not endpoint:
-            self.init_error = "R2 enabled but endpoint_url / AWS_ENDPOINT_URL missing"
-            self.fallback_note = "falling back to local outbox (fail-safe)"
-            log.warning("[publish] %s — %s", self.init_error, self.fallback_note)
-            self.backend = "local"
-            self.outbox.mkdir(parents=True, exist_ok=True)
-            return
-        self.bucket = r2.get("bucket") or os.environ.get("R2_BUCKET")
-        if not self.bucket:
-            self.init_error = "R2_BUCKET / r2.bucket missing"
-            self.fallback_note = "falling back to local outbox (fail-safe)"
-            log.warning("[publish] %s — %s", self.init_error, self.fallback_note)
-            self.backend = "local"
-            self.outbox.mkdir(parents=True, exist_ok=True)
-            return
-        if not os.environ.get("AWS_ACCESS_KEY_ID") or not os.environ.get("AWS_SECRET_ACCESS_KEY"):
-            log.warning(
-                "[publish] AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY not set in environment "
-                "(uploads will fail until configured)"
-            )
-        self._s3 = boto3.client(
-            "s3",
-            endpoint_url=endpoint,
-            region_name=r2.get("region") or "auto",
-            aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
-            aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+        self.bucket = bucket
+        self._s3 = client
+        path_style = resolve_force_path_style(s3)
+        label = "R2" if "r2.cloudflarestorage.com" in endpoint else "S3"
+        log.info(
+            "[publish] %s ready bucket=%s endpoint=%s region=%s path_style=%s",
+            label,
+            self.bucket,
+            endpoint,
+            resolve_region(s3),
+            path_style,
         )
-        log.info("[publish] R2 ready bucket=%s endpoint=%s", self.bucket, endpoint)
 
     def info(self) -> dict[str, Any]:
         return {
@@ -159,7 +239,7 @@ class Publisher:
         )
 
     def _put(self, key: str, path: Path) -> None:
-        if self.backend == "r2" and self._s3 is not None:
+        if self.backend == "s3" and self._s3 is not None:
             extra = {"ContentType": "image/jpeg", "CacheControl": "public, max-age=60"}
             self._s3.upload_file(str(path), self.bucket, key, ExtraArgs=extra)
             log.info("[publish] uploaded s3://%s/%s (%s bytes)", self.bucket, key, path.stat().st_size)

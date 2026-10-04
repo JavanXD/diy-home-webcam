@@ -1,16 +1,32 @@
-# Pi runtime (`webcam-camera` + `webcam-pipeline`)
+# Pi runtime (camera + pipeline)
 
-Both units run on one Raspberry Pi. Install root defaults to `/opt/home-webcam-pipeline/`.
+Both systemd services run on the **same Raspberry Pi**. Home Assistant only imports YAML from `homeassistant/`.
+
+| Path | Port | Unit | Role |
+|------|------|------|------|
+| `pi/camera/` | 8080 | `webcam-camera` | Capture + `/raw.jpg` (always live) + `/feed.jpg` (Wartungsbild) |
+| `pi/pipeline/` | 8090 | `webcam-pipeline` | Render variants, private HTTP for HA, R2 publish |
 
 ```bash
-# From your computer (after cloning this repo)
-./pi/scripts/sync-to-pi.sh pi@<pi-host>
-# On the Pi:
+# On the Pi, from the repo root
 sudo ./pi/provision.sh
 ```
 
-Camera LAN UI: `http://<pi-host>:8080/` · Pipeline: `http://<pi-host>:8090/`
+Camera-only: `pi/camera/scripts/provision.sh`  
+Pipeline-only: `pi/pipeline/scripts/provision.sh`
 
-Secrets (R2): `/etc/webcam-pipeline/env` on the Pi — never commit. Template: [`examples/pi/r2.env`](../examples/pi/r2.env).
+Operator host / SSH / IPs: `Notes.txt` and [docs/NAMING.md](../docs/NAMING.md). Secrets: `~/Projects/.secrets/raspicam.env`.  
+Storage / boot / network IaC: [docs/PI-HOST.md](../docs/PI-HOST.md) (`pi/host/*.env` + `pi/scripts/`).
 
-See [docs/diy/BUILD.md](../docs/diy/BUILD.md) and [docs/PI-HOST.md](../docs/PI-HOST.md).
+### Code first (Mac → Pi)
+
+```bash
+set -a && source ~/Projects/.secrets/raspicam.env && set +a
+./pi/scripts/sync-to-pi.sh "${RASPICAM_SSH_USER}@${RASPICAM_HOST}"
+./pi/camera/scripts/deploy.sh "${RASPICAM_SSH_USER}@${RASPICAM_HOST}"   # optional service restart path
+./pi/pipeline/scripts/deploy.sh "${RASPICAM_SSH_USER}@${RASPICAM_HOST}"
+```
+
+If pipeline health shows `Permission denied` under `/opt/home-webcam-pipeline/data`, restore
+service-user ownership: `sudo ./pi/scripts/fix-data-perms.sh` (also run automatically by
+`sync-to-pi.sh`).

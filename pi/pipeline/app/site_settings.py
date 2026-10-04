@@ -286,7 +286,7 @@ def create_camera(
 
 
 def pipeline_config_paths(repo_root: Path) -> list[Path]:
-    """Running pipeline files. The Example example file is left unchanged."""
+    """Running pipeline files. Existing pipeline example files on disk are left unchanged."""
     found: list[Path] = []
     for path in (
         Path("/etc/webcam-pipeline/pipeline.yaml"),

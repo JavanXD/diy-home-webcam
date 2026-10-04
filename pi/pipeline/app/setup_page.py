@@ -31,7 +31,7 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   <p class="field-help">Text drawn in the corner of public JPEGs. Saved on each public variant.</p>
   <label for="liveKey">Public JPEG key</label>
   <input id="liveKey" type="text" maxlength="120" autocomplete="off" placeholder="live/example-live-webcam.jpg">
-  <p class="field-help">R2 object name. The public website must use this same path. Switching the live crop does not rename it.</p>
+  <p class="field-help">Object key in the publish bucket. The public website must use this same path. Switching the live crop does not rename it.</p>
   <label for="weatherUrl">Weather URL</label>
   <input id="weatherUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com/api/weather">
   <p class="field-help">JSON with <code>current.temp_c</code>. Leave empty to skip temperature on the public JPEG.</p>
@@ -63,18 +63,46 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   </div>
 """
     publish = """
-  <p class="field-help">Keys are written to <code>/etc/webcam-pipeline/env</code> on this Pi (not into git). Leave the secret blank to keep the current one. Restart the pipeline service before the next upload uses a new key.</p>
-  <label class="inline"><input type="checkbox" id="publishEnabled"> Publish the public JPEG</label>
-  <label for="bucket">Bucket</label>
-  <input id="bucket" type="text" maxlength="80" autocomplete="off">
-  <label for="endpoint">Endpoint URL</label>
-  <input id="endpoint" type="url" inputmode="url" autocomplete="off" placeholder="https://ACCOUNT.r2.cloudflarestorage.com">
-  <label for="accessKey">Access key id</label>
-  <input id="accessKey" type="text" autocomplete="off">
-  <label for="secretKey">Secret access key</label>
-  <input id="secretKey" type="password" autocomplete="new-password">
+  <p class="field-help">
+    Upload the public JPEG to any S3-compatible store (Cloudflare R2, AWS S3, MinIO, Wasabi, Backblaze B2 S3 API),
+    write to a local outbox, or turn publish off. Keys go to <code>/etc/webcam-pipeline/env</code> on this Pi (not into git).
+    Leave the secret blank to keep the current one. Restart the pipeline service before the next upload uses a new key.
+  </p>
+  <label for="publishProvider">Provider</label>
+  <select id="publishProvider">
+    <option value="off">Off — do not upload</option>
+    <option value="r2">Cloudflare R2</option>
+    <option value="s3">Custom S3-compatible</option>
+    <option value="local">Local outbox only</option>
+  </select>
+  <p class="field-help" id="providerHelp"></p>
+  <div id="publishRemote">
+    <label for="accountId">Cloudflare account id</label>
+    <input id="accountId" type="text" maxlength="64" autocomplete="off" placeholder="optional for R2 — fills the endpoint">
+    <p class="field-help">R2 only. Used to build <code>https://&lt;account&gt;.r2.cloudflarestorage.com</code> when the endpoint field is empty.</p>
+    <label for="endpoint">Endpoint URL</label>
+    <input id="endpoint" type="url" inputmode="url" autocomplete="off" placeholder="https://s3.example.com">
+    <p class="field-help">S3 API endpoint. Examples: R2 <code>https://&lt;account&gt;.r2.cloudflarestorage.com</code>, MinIO <code>http://192.168.1.10:9000</code>, AWS leave regional or use the S3 URL your console shows.</p>
+    <label for="bucket">Bucket</label>
+    <input id="bucket" type="text" maxlength="80" autocomplete="off">
+    <div class="row">
+      <div>
+        <label for="region">Region</label>
+        <input id="region" type="text" maxlength="64" autocomplete="off" placeholder="auto">
+      </div>
+      <div>
+        <label class="inline" style="margin-top:1.6rem"><input type="checkbox" id="pathStyle"> Path-style addressing</label>
+        <p class="field-help">Often needed for MinIO. Leave off for R2 and AWS virtual-hosted style.</p>
+      </div>
+    </div>
+    <label for="accessKey">Access key id</label>
+    <input id="accessKey" type="text" autocomplete="off">
+    <label for="secretKey">Secret access key</label>
+    <input id="secretKey" type="password" autocomplete="new-password">
+  </div>
   <p class="muted" id="publishHint"></p>
   <div class="actions">
+    <button type="button" id="testPublish" class="ghost">Test connection</button>
     <button type="button" id="savePublish" class="primary">Save publish settings</button>
   </div>
 """
@@ -283,17 +311,89 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     }}
   }});
 
+  function providerHelp(provider) {{
+    var map = {{
+      off: "Public variants stay on this Pi only. No upload.",
+      r2: "Cloudflare R2 preset. Paste the account id (optional) or the full R2 S3 endpoint, bucket, and R2 API token keys.",
+      s3: "Any S3-compatible API: AWS S3, MinIO, Wasabi, Backblaze B2 (S3), etc. Set endpoint, bucket, region, and keys.",
+      local: "Writes the same key layout under data/outbox/ on this Pi. Useful for testing without a cloud bucket."
+    }};
+    return map[provider] || "";
+  }}
+
+  function syncPublishForm() {{
+    var provider = val("publishProvider") || "off";
+    var help = document.getElementById("providerHelp");
+    if (help) help.textContent = providerHelp(provider);
+    var remote = document.getElementById("publishRemote");
+    if (remote) remote.hidden = !(provider === "r2" || provider === "s3");
+    var accountRow = document.getElementById("accountId");
+    if (accountRow) {{
+      var wrap = accountRow.closest("label") || accountRow;
+      // account field + its help stay visible mainly for R2
+      accountRow.disabled = provider !== "r2";
+    }}
+  }}
+
+  function publishPayload() {{
+    return {{
+      provider: val("publishProvider"),
+      account_id: val("accountId"),
+      bucket: val("bucket"),
+      endpoint_url: val("endpoint"),
+      region: val("region") || "auto",
+      force_path_style: document.getElementById("pathStyle").checked,
+      access_key_id: val("accessKey"),
+      secret_access_key: val("secretKey")
+    }};
+  }}
+
   async function loadPublish() {{
     var pub = await window.lanUi.fetchJson("/setup/publish");
-    document.getElementById("publishEnabled").checked = !!pub.enabled;
+    set("publishProvider", pub.provider || (pub.enabled ? "s3" : "off"));
     set("bucket", pub.bucket || "");
     set("endpoint", pub.endpoint_url || "");
+    set("region", pub.region || "auto");
+    set("accountId", pub.account_id || "");
+    document.getElementById("pathStyle").checked = !!pub.force_path_style;
     var hint = [];
     if (pub.access_key_set) hint.push("access key is set");
     if (pub.secret_set) hint.push("secret is set");
+    if (pub.env_path) hint.push("env " + pub.env_path);
     if (pub.restart_required) hint.push("restart the pipeline after a new key");
     document.getElementById("publishHint").textContent = hint.join(" · ");
+    syncPublishForm();
   }}
+
+  document.getElementById("publishProvider").addEventListener("change", syncPublishForm);
+
+  document.getElementById("accountId").addEventListener("change", function () {{
+    var account = val("accountId");
+    if (val("publishProvider") === "r2" && account && !val("endpoint")) {{
+      set("endpoint", "https://" + account + ".r2.cloudflarestorage.com");
+    }}
+  }});
+
+  document.getElementById("testPublish").addEventListener("click", async function () {{
+    var btn = document.getElementById("testPublish");
+    window.lanUi.setBusy(btn, true, "Testing…");
+    try {{
+      var res = await window.lanUi.fetchJson("/setup/publish/test", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify(publishPayload())
+      }});
+      if (res && res.ok) {{
+        window.lanUi.showBanner("msg", "ok", "Connection OK", res.detail || "");
+      }} else {{
+        window.lanUi.showBanner("msg", "bad", "Connection failed", (res && res.detail) || "unknown error");
+      }}
+    }} catch (e) {{
+      window.lanUi.showBanner("msg", "bad", "Connection failed", e && e.message ? e.message : String(e));
+    }} finally {{
+      window.lanUi.setBusy(btn, false);
+    }}
+  }});
 
   document.getElementById("savePublish").addEventListener("click", async function () {{
     var btn = document.getElementById("savePublish");
@@ -302,13 +402,7 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
       await window.lanUi.fetchJson("/setup/publish", {{
         method: "POST",
         headers: {{ "Content-Type": "application/json" }},
-        body: JSON.stringify({{
-          enabled: document.getElementById("publishEnabled").checked,
-          bucket: val("bucket"),
-          endpoint_url: val("endpoint"),
-          access_key_id: val("accessKey"),
-          secret_access_key: val("secretKey")
-        }})
+        body: JSON.stringify(publishPayload())
       }});
       document.getElementById("secretKey").value = "";
       document.getElementById("accessKey").value = "";

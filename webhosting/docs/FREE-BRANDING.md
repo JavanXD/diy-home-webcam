@@ -1,11 +1,19 @@
-# Free-plan public branding
+# Free-plan branding — HTML landing only (chosen)
 
-**Decision:** Brand on the public **landing page** with an HTML/CSS chip (site name + optional link). Do **not** composite a logo watermark onto the live JPEG on the Free plan (no Cloudflare Images).
+**Decision:** Brand on the public **landing page** with an HTML/CSS chip (logo + link to dasbollenhuthaus.de).  
+The livestream **JPEG itself is not watermarked** (clean hotlink / timelapse / embed).
 
-## JPEG burn-in
+## Why this over pipeline PNG / CF Images
 
-Public variants may enable a small **site badge** (hostname · outdoor °C) via `site_badge` in the variant YAML. Keep `watermark.enabled: false` on public variants unless you host your own logo assets.
+| Approach | Free? | Brands the `.jpg`? | Notes |
+|----------|-------|--------------------|-------|
+| **HTML overlay (chosen)** | Yes | No — only `/` | Zero transform cost; best for timelapse cleanliness |
+| Pipeline PNG burn-in | Yes | Yes | Use if you need hotlinked JPG branded |
+| CF Images edge draw | Free 5k unique/mo | Yes | Burns quota fast on live frames — avoid |
 
-## Landing
+## Files
 
-Replace `site/index.html` with your own chip, favicons, and copy. Do not ship someone else’s logo.
+- Landing: `site/index.html` (`.brand` chip → https://dasbollenhuthaus.de/)
+- Logo asset: `site/branding/bollenhut-watermark.png`
+- Sync: `python3 scripts/sync-bollenhut-watermark.py`
+- Public variants: `watermark.enabled: false` in `cameras/schellbronn/variants/*-public.yaml`

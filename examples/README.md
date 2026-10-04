@@ -24,7 +24,7 @@ Edit `variants/landscape-public.yaml`, `variants/wide-public.yaml`, and optional
 
 ## 2. Pipeline
 
-On a fresh Pi, provision copies `pi/pipeline/config/pipeline.example.yaml`. **This checkout’s copy lists `example`.** Either:
+On a fresh Pi, provision copies `pi/pipeline/config/pipeline.example.yaml`. **This checkout’s copy lists `schellbronn`.** Either:
 
 - add your id next to `example` in `/etc/webcam-pipeline/pipeline.yaml`, or
 - when you rename the starter camera, replace that example with [`pi/pipeline.yaml`](pi/pipeline.yaml).

@@ -2,14 +2,18 @@
 
 From a blank microSD to a LAN JPEG, then optional public hosting. Parts: [SHOPPING-LIST.md](SHOPPING-LIST.md). Your own names and crops: [examples/README.md](../../examples/README.md).
 
-This checkout ships a starter camera called `example`. The **DIY flashable image** defaults to the generic `example` camera and hostname `home-webcam`. To start a different camera from a blank OS, copy the example **before** the first pipeline install so `pipeline.yaml` lists your id.
+This checkout ships a starter camera called `example` (ops: the live camera lives under gitignored `private/`). The **DIY flashable image** defaults to the generic `example` camera and hostname `home-webcam`. To start a different camera from a blank OS, copy the example **before** the first pipeline install so `pipeline.yaml` lists your id.
 
 ## 1. Assemble
+
+Parts flat-lay (case open, M.2 HAT+ Compact, Kingston NVMe, microSD): ![NVMe HAT and storage](images/pi-nvme-hat-sd.jpg)
 
 1. Lens for **this** parts list (LN050, 16 mm, CS-mount): unscrew the 5 mm C–CS adapter ring that is already on the HQ camera (SC0261) and set it aside. Screw the lens onto the camera body until it stops. A C-mount lens is the opposite: leave the ring on and screw the lens onto the ring. Details under [Focus](#focus) below.
 2. Connect the HQ camera ribbon to the **Pi 5** CSI connector with a Pi 5–compatible flex (15-pin camera ↔ 22-pin Pi). Latch closed; contacts oriented per the Pi 5 silkscreen.
 3. Power supply unplugged. Insert the microSD after it is flashed.
 4. Optional: fit the M.2 HAT+ Compact + NVMe. First boot from the SD card; move the OS later with `pi/scripts/migrate-os-to-nvme.sh` ([docs/PI-HOST.md](../PI-HOST.md)).
+
+Window-shelf reference (Pi in official case, tall stand, CSI down the pole): ![Full setup](images/pi-full-setup.jpg) · close-up ![Camera assembly](images/pi-camera-assembly.jpg)
 
 ## 2. Get the OS onto the card
 
@@ -21,7 +25,7 @@ GitHub Actions workflow **Build Pi image** (`.github/workflows/build-pi-image.ym
 |---------------|--------|
 | Hostname | `home-webcam` |
 | App tree | `/opt/home-webcam-pipeline` |
-| Camera | `example` (from `examples/`; not this deployment) |
+| Camera | `example` (from `examples/`) |
 | R2 / secrets | Empty placeholders only |
 | Setup AP | `webcam-setup-ap.service` — SSID `Webcam-Setup` only when no home Wi-Fi profile exists |
 
@@ -103,21 +107,33 @@ A different lens follows the same rule: CS-mount, ring off; C-mount, ring on. Fo
 If you copied `examples/cameras/example/` to `cameras/<id>/`:
 
 1. Edit `cameras/<id>/camera.yaml` (source URL stays `http://127.0.0.1:8080/raw.jpg` when capture and pipeline share the Pi).
-2. Set `cameras:` in `/etc/webcam-pipeline/pipeline.yaml` to your id. The example file in git lists `example`.
+2. Set `cameras:` in `/etc/webcam-pipeline/pipeline.yaml` to your id. Start from [`examples/pi/pipeline.yaml`](../../examples/pi/pipeline.yaml) (`example`); the ops overlay may list a different id.
 3. `sudo systemctl restart webcam-pipeline`
-4. Crops and privacy masks: `http://<pi>:8090/variants/ui` — drag the rectangles on the preview.
+4. Crops and privacy masks: `http://<pi>:8090/variants/ui` — drag the **cyan** crop on the full frame, then yellow privacy rectangles on the served preview.
 5. Name, place, weather URL, and Wi-Fi: `http://<pi>:8090/setup/ui` (writes `camera.yaml`; the Wi-Fi password stays in NetworkManager, not in git).
 
 Public sunrise/sunset uses `location` and `timezone` in that `camera.yaml`. Setup saves those into the schedule file as well.
 
-## 5. Optional: publish to the internet
+## 5. Optional: publish (R2, other S3, or off)
 
-1. Enable R2 on a Cloudflare account and create a bucket (`scripts/setup-r2.sh` is wired for this deployment’s account; for a new account, create the bucket in the dashboard or with Wrangler).
-2. Copy [`examples/pi/r2.env`](../../examples/pi/r2.env) to a file outside git, fill the keys, install it as `/etc/webcam-pipeline/env` (mode `640`, `root:webcam`).
-3. In `pipeline.yaml`, set `publish.enabled: true` and your bucket name.
-4. Edit `webhosting/wrangler.jsonc` (template: [`examples/webhosting/wrangler.jsonc`](../../examples/webhosting/wrangler.jsonc)) and the `LIVE_MAP` in `webhosting/worker/src/index.ts` so the public path matches `publish.public_live_key`.
-5. Replace the landing page under `webhosting/site/` with your own copy.
-6. `cd webhosting && npx wrangler deploy`
+Full field/env reference: **[PUBLISH.md](PUBLISH.md)**.
+
+**Easiest:** open `http://<pi>:8090/setup/ui` → **Publish**, pick a provider, fill endpoint/bucket/keys, **Test connection**, **Save**, then restart `webcam-pipeline`.
+
+| Provider | What it does |
+|---|---|
+| **Off** | No upload (LAN / Home Assistant still work) |
+| **Cloudflare R2** | Preset — account id fills `https://<account>.r2.cloudflarestorage.com` |
+| **Custom S3-compatible** | AWS S3, MinIO, Wasabi, Backblaze B2 S3 API, etc. |
+| **Local outbox** | Same key layout under `data/outbox/` (no cloud) |
+
+Env file shape (no real secrets in git): [`examples/pi/r2.env`](../../examples/pi/r2.env) — install as `/etc/webcam-pipeline/env` (mode `640`, `root:webcam`). Variable names are the boto3/`AWS_*` convention; `R2_BUCKET` and `S3_BUCKET` both work.
+
+**Optional Cloudflare Worker landing** (R2 binding):
+
+1. Edit `webhosting/wrangler.jsonc` (template: [`examples/webhosting/wrangler.jsonc`](../../examples/webhosting/wrangler.jsonc)) and the `LIVE_MAP` in `webhosting/worker/src/index.ts` so the public path matches `publish.public_live_key`.
+2. Replace the landing page under `webhosting/site/` with your own copy. The pages in this ops checkout are site-specific.
+3. `cd webhosting && npx wrangler deploy`
 
 Keep `workers_dev` and `preview_urls` false once a custom domain is attached. Local preview: `npx wrangler dev` → http://127.0.0.1:8787/
 
@@ -127,7 +143,7 @@ Private variants are **LAN-only** images (home network only; not the public webs
 
 Copy [`examples/homeassistant/webcam.yaml`](../../examples/homeassistant/webcam.yaml) into HA `packages/` and replace the host, camera id, and display name. Lovelace: [`examples/homeassistant/lovelace.yaml`](../../examples/homeassistant/lovelace.yaml).
 
-A starter package is `homeassistant/packages/webcam_example.yaml`.
+A starter package is `homeassistant/packages/webcam_example.yaml` (ops live package is under `private/`).
 
 ## 7. Optional: NVMe as the OS disk
 
@@ -135,7 +151,7 @@ Desired state for **this** Pi is `pi/host/desired.env` (NVMe first). A generic c
 
 ## Maintenance images
 
-If `maintenance-base.jpg` / `offline-base.jpg` are missing, the pipeline draws a plain dark slide. You can supply your own bases via `generate-placeholders.py --source`.
+If `maintenance-base.jpg` / `offline-base.jpg` are present, the pipeline draws status text on top at the final size. Ops may ship site-specific bases under `private/`; DIY starts without them (plain dark slide).
 
 For your own camera, delete those two files. Night and maintenance then use a plain dark slide. You can still upload a night photo on the Schedule page.
 

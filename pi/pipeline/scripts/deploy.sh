@@ -4,8 +4,9 @@ set -euo pipefail
 
 TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
-  echo "usage: $0 pi@home-webcam.local" >&2
-  echo "  tip: optional PI_SSH_KEY / PI_SSH_USER / PI_SSH_HOST (or pass the target)" >&2
+  echo "usage: $0 pi@raspicam.local" >&2
+  echo "  tip: set -a && source ~/Projects/.secrets/raspicam.env && set +a" >&2
+  echo "       $0 \${RASPICAM_SSH_USER}@\${RASPICAM_HOST}" >&2
   exit 1
 fi
 
@@ -14,8 +15,8 @@ REMOTE_ROOT="${REMOTE_ROOT:-/opt/home-webcam-pipeline}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 SSH_OPTS=(-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new)
-if [[ -n "${PI_SSH_KEY:-}" ]]; then
-  KEY="${PI_SSH_KEY/#\~/$HOME}"
+if [[ -n "${RASPICAM_SSH_KEY:-}" ]]; then
+  KEY="${RASPICAM_SSH_KEY/#\~/$HOME}"
   SSH_OPTS+=(-i "$KEY")
 fi
 RSYNC_SSH="ssh ${SSH_OPTS[*]}"

@@ -19,7 +19,12 @@ from .setup_page import setup_ui
 from .timelapse import TimelapseError, archive_for, job_error, request_build
 from .timelapse_page import timelapse_ui
 from .site_settings import create_camera, pipeline_config_paths, read_site, save_site
-from .publish_settings import default_env_path, read_publish, save_publish
+from .publish_settings import (
+    default_env_path,
+    probe_publish_connection,
+    read_publish,
+    save_publish,
+)
 from .wifi_nm import WifiError, network_glance, wifi_connect, wifi_scan, wifi_status
 from .system_ops import (
     SystemOpsError,
@@ -661,7 +666,7 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
         + lan_ui.banner_slot("msg")
     )
     body = f"""
-  {lan_ui.page_header("Variants", "Each variant is a crop and privacy layout of the same camera. Edit → <strong>Preview</strong> or <strong>Save</strong>. <strong>Private</strong> is LAN-only (not for the public website). Pick one public variant as the livestream — the website URL stays the same.", kicker=":8090 · crop · masks · livestream")}
+  {lan_ui.page_header("Variants", "Each variant is a crop and privacy layout of the same camera. Drag the cyan crop on the full frame, yellow masks on the output, then <strong>Preview</strong> or <strong>Save</strong>. <strong>Private</strong> is LAN-only (not for the public website). Pick one public variant as the livestream — the website URL stays the same.", kicker=":8090 · crop · masks · livestream")}
   {lan_ui.card("Status", status_body, kind="pipe")}
 
   {lan_ui.card("Public livestream", '''
@@ -722,56 +727,69 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
 
   <fieldset>
     <legend>Crop</legend>
-    <p class="fieldset-help">Which part of the full camera frame to keep (edges as 0–1 fractions). Set <strong>aspect ratio</strong> to match the output size for a clean scale.</p>
-    <label for="cropMode">Mode</label>
-    <select id="cropMode">
-      <option value="">(auto from file)</option>
-      <option value="full">full — entire camera frame</option>
-      <option value="centered">centered — width/height fractions + zoom</option>
-      <option value="arbitrary">arbitrary — custom left / top / right / bottom</option>
-    </select>
-    <p class="field-help">How to pick the area of the full camera frame: entire frame, centered box, or custom edges.</p>
-    <div class="row">
+    <p class="fieldset-help">Which part of the full camera frame to keep. Drag the cyan rectangle on the raw frame below. Set <strong>aspect ratio</strong> to match the output size for a clean cover-fit (no stretch).</p>
+    <div class="crop-tools">
       <div>
-        <label for="cropLeft">Left</label>
-        <input id="cropLeft" type="number" step="0.01" min="0" max="1" inputmode="decimal" placeholder="0–1">
-      </div>
-      <div>
-        <label for="cropTop">Top</label>
-        <input id="cropTop" type="number" step="0.01" min="0" max="1" inputmode="decimal" placeholder="0–1">
-      </div>
-      <div>
-        <label for="cropRight">Right</label>
-        <input id="cropRight" type="number" step="0.01" min="0" max="1" inputmode="decimal" placeholder="0–1">
-      </div>
-      <div>
-        <label for="cropBottom">Bottom</label>
-        <input id="cropBottom" type="number" step="0.01" min="0" max="1" inputmode="decimal" placeholder="0–1">
-      </div>
-    </div>
-    <p class="field-help">Custom crop edges as fractions of the full frame (0 = left/top, 1 = right/bottom). Used in arbitrary mode.</p>
-    <div class="row">
-      <div>
-        <label for="widthFrac">Width fraction</label>
-        <input id="widthFrac" type="number" step="0.01" min="0.05" max="1" inputmode="decimal" placeholder="centered">
-        <p class="field-help">Centered mode: how much of the frame width to keep (before zoom).</p>
-      </div>
-      <div>
-        <label for="heightFrac">Height fraction</label>
-        <input id="heightFrac" type="number" step="0.01" min="0.05" max="1" inputmode="decimal" placeholder="centered">
-        <p class="field-help">Centered mode: how much of the frame height to keep (before zoom).</p>
-      </div>
-      <div>
-        <label for="zoom">Zoom</label>
-        <input id="zoom" type="number" step="0.05" min="1" max="8" inputmode="decimal" placeholder="≥1">
-        <p class="field-help">1 = no zoom. Higher values zoom into the crop center (no stretch).</p>
+        <label for="cropMode">Mode</label>
+        <select id="cropMode">
+          <option value="">(auto from file)</option>
+          <option value="full">full — entire camera frame</option>
+          <option value="centered">centered — width/height fractions + zoom</option>
+          <option value="arbitrary">arbitrary — custom left / top / right / bottom</option>
+        </select>
       </div>
       <div>
         <label for="aspect">Aspect ratio</label>
         <input id="aspect" type="text" placeholder="16:9" autocomplete="off">
-        <p class="field-help">Crop width:height (e.g. 16:9) before scaling to output size.</p>
       </div>
+      <button type="button" id="cropFull" class="ghost">Full frame</button>
+      <button type="button" id="cropMatchOut" class="ghost">Match output AR</button>
     </div>
+    <p class="field-help" id="cropHint">Drag the cyan box to move; pull the corner to resize. Aspect locks when set. Preview, then Save.</p>
+    <div class="crop-edit-stage">
+      <h2 class="h-inline">Edit crop</h2>
+      <p class="muted">Full camera frame (stored original) — drag the cyan rectangle. Output still cover-fits without stretching.</p>
+      {lan_ui.preview_img("cropSrc", alt="Full camera original — crop edit surface", width=1280, height=720, loading="lazy", overlay='<div class="crop-layer" id="cropLayer"><div class="crop-box" id="cropBox"><span class="crop-tag">crop</span><span class="crop-handle" aria-hidden="true"></span></div></div>', frame_class="is-sharp")}
+    </div>
+    <details>
+      <summary>Coordinates</summary>
+      <div class="row">
+        <div>
+          <label for="cropLeft">Left</label>
+          <input id="cropLeft" type="number" step="0.01" min="0" max="1" inputmode="decimal" placeholder="0–1">
+        </div>
+        <div>
+          <label for="cropTop">Top</label>
+          <input id="cropTop" type="number" step="0.01" min="0" max="1" inputmode="decimal" placeholder="0–1">
+        </div>
+        <div>
+          <label for="cropRight">Right</label>
+          <input id="cropRight" type="number" step="0.01" min="0" max="1" inputmode="decimal" placeholder="0–1">
+        </div>
+        <div>
+          <label for="cropBottom">Bottom</label>
+          <input id="cropBottom" type="number" step="0.01" min="0" max="1" inputmode="decimal" placeholder="0–1">
+        </div>
+      </div>
+      <p class="field-help">Custom crop edges as fractions of the full frame (0 = left/top, 1 = right/bottom). Used in arbitrary mode.</p>
+      <div class="row">
+        <div>
+          <label for="widthFrac">Width fraction</label>
+          <input id="widthFrac" type="number" step="0.01" min="0.05" max="1" inputmode="decimal" placeholder="centered">
+          <p class="field-help">Centered mode: how much of the frame width to keep (before zoom).</p>
+        </div>
+        <div>
+          <label for="heightFrac">Height fraction</label>
+          <input id="heightFrac" type="number" step="0.01" min="0.05" max="1" inputmode="decimal" placeholder="centered">
+          <p class="field-help">Centered mode: how much of the frame height to keep (before zoom).</p>
+        </div>
+        <div>
+          <label for="zoom">Zoom</label>
+          <input id="zoom" type="number" step="0.05" min="1" max="8" inputmode="decimal" placeholder="≥1">
+          <p class="field-help">1 = no zoom. Higher values zoom into the crop center (no stretch). Dragging the box resets zoom to 1.</p>
+        </div>
+      </div>
+    </details>
   </fieldset>
 
   <fieldset>
@@ -922,7 +940,7 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   <p class="muted preview-hint" id="previewHint">Click <strong>Preview</strong> to try edits without saving. Preview is not automatic — result shows in the compact frame below.</p>
   <div class="preview-secondary">
     <h2 class="h-inline">Preview (unsaved)</h2>
-    <p class="muted">Unsaved preview after you click Preview. Edit masks on the large image above.</p>
+    <p class="muted">Unsaved preview after you click Preview. Edit crop and masks on the large images above.</p>
     {lan_ui.preview_img("preview", alt="Unsaved preview of selected variant", width=640, height=360, loading="lazy")}
   </div>
 
@@ -940,15 +958,19 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   var currentJpegMtime = "";
   var thumbW = {_GALLERY_THUMB_W};
   var servedW = {_SERVED_PREVIEW_W};
+  var cropPreviewW = {_SERVED_PREVIEW_W};
   var maskList = [];
   var maskSelected = -1;
   var writingMasks = false;
+  var writingCrop = false;
+  var cropBox = {{ left: 0, top: 0, right: 1, bottom: 1 }};
+  var cropBound = false;
 
   function absoluteUrl(path) {{
     var p = path || "";
     if (!p) return "";
     if (p.indexOf("http") === 0) return p;
-    var host = location.hostname || "home-webcam.local";
+    var host = location.hostname || "raspicam.local";
     var port = location.port || "8090";
     return "http://" + host + ":" + port + p;
   }}
@@ -1199,6 +1221,262 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     paintMaskBoxes();
   }}
 
+  function parseAspectRatio(text) {{
+    var s = String(text || "").trim();
+    if (!s) return null;
+    if (/^\\d+(\\.\\d+)?$/.test(s)) {{
+      var n = Number(s);
+      return n > 0 ? n : null;
+    }}
+    var parts = s.replace("/", ":").split(":");
+    if (parts.length !== 2) return null;
+    var a = Number(parts[0]), b = Number(parts[1]);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a <= 0 || b <= 0) return null;
+    return a / b;
+  }}
+
+  function applyAspectToBox(box, ratio) {{
+    if (!ratio || ratio <= 0) return box;
+    var left = box.left, top = box.top, right = box.right, bottom = box.bottom;
+    var bw = Math.max(0.02, right - left);
+    var bh = Math.max(0.02, bottom - top);
+    var cur = bw / bh;
+    if (cur > ratio) {{
+      var nw = bh * ratio;
+      left = left + (bw - nw) / 2;
+      right = left + nw;
+    }} else if (cur < ratio) {{
+      var nh = bw / ratio;
+      top = top + (bh - nh) / 2;
+      bottom = top + nh;
+    }}
+    if (left < 0) {{ right -= left; left = 0; }}
+    if (top < 0) {{ bottom -= top; top = 0; }}
+    if (right > 1) {{ left -= (right - 1); right = 1; }}
+    if (bottom > 1) {{ top -= (bottom - 1); bottom = 1; }}
+    left = Math.max(0, Math.min(left, 0.98));
+    top = Math.max(0, Math.min(top, 0.98));
+    right = Math.max(left + 0.02, Math.min(right, 1));
+    bottom = Math.max(top + 0.02, Math.min(bottom, 1));
+    return {{ left: left, top: top, right: right, bottom: bottom }};
+  }}
+
+  function computeCropBoxFromForm() {{
+    var mode = (document.getElementById("cropMode").value || "").toLowerCase();
+    var left = numOrNull("cropLeft");
+    var top = numOrNull("cropTop");
+    var right = numOrNull("cropRight");
+    var bottom = numOrNull("cropBottom");
+    var wf = numOrNull("widthFrac");
+    var hf = numOrNull("heightFrac");
+    var z = numOrNull("zoom") || 1;
+    if (z < 1) z = 1;
+    if (!mode) {{
+      if (left != null || top != null || right != null || bottom != null) mode = "arbitrary";
+      else if (wf != null || hf != null || z > 1) mode = "centered";
+      else mode = "full";
+    }}
+    var box;
+    if (mode === "full") {{
+      box = {{ left: 0, top: 0, right: 1, bottom: 1 }};
+    }} else if (mode === "centered") {{
+      var w = Math.min(1, Math.max(0.05, (wf != null ? wf : 1) / z));
+      var h = Math.min(1, Math.max(0.05, (hf != null ? hf : 1) / z));
+      box = {{
+        left: (1 - w) / 2,
+        top: (1 - h) / 2,
+        right: (1 + w) / 2,
+        bottom: (1 + h) / 2,
+      }};
+    }} else {{
+      box = {{
+        left: left != null ? left : 0,
+        top: top != null ? top : 0,
+        right: right != null ? right : 1,
+        bottom: bottom != null ? bottom : 1,
+      }};
+      if (z > 1) {{
+        var bw = box.right - box.left;
+        var bh = box.bottom - box.top;
+        var nw = bw / z;
+        var nh = bh / z;
+        var cx = (box.left + box.right) / 2;
+        var cy = (box.top + box.bottom) / 2;
+        box = {{ left: cx - nw / 2, top: cy - nh / 2, right: cx + nw / 2, bottom: cy + nh / 2 }};
+      }}
+    }}
+    var ar = parseAspectRatio(document.getElementById("aspect").value);
+    box = applyAspectToBox(box, ar);
+    box.left = round4(Math.max(0, Math.min(box.left, 0.98)));
+    box.top = round4(Math.max(0, Math.min(box.top, 0.98)));
+    box.right = round4(Math.max(box.left + 0.02, Math.min(box.right, 1)));
+    box.bottom = round4(Math.max(box.top + 0.02, Math.min(box.bottom, 1)));
+    return box;
+  }}
+
+  function syncCropLayerToImage() {{
+    var img = document.getElementById("cropSrc");
+    var layer = document.getElementById("cropLayer");
+    if (!img || !layer) return;
+    var frame = img.closest(".preview-frame");
+    if (!frame) return;
+    var fw = frame.clientWidth || 0;
+    var fh = frame.clientHeight || 0;
+    var nw = img.naturalWidth || 0;
+    var nh = img.naturalHeight || 0;
+    if (fw < 1 || fh < 1) return;
+    if (nw < 1 || nh < 1) {{
+      layer.style.left = "0";
+      layer.style.top = "0";
+      layer.style.width = "100%";
+      layer.style.height = "100%";
+      return;
+    }}
+    var scale = Math.min(fw / nw, fh / nh);
+    var w = nw * scale;
+    var h = nh * scale;
+    var left = (fw - w) / 2;
+    var top = (fh - h) / 2;
+    layer.style.left = left + "px";
+    layer.style.top = top + "px";
+    layer.style.width = w + "px";
+    layer.style.height = h + "px";
+  }}
+
+  function paintCropBox() {{
+    syncCropLayerToImage();
+    var el = document.getElementById("cropBox");
+    if (!el) return;
+    el.style.left = (cropBox.left * 100) + "%";
+    el.style.top = (cropBox.top * 100) + "%";
+    el.style.width = ((cropBox.right - cropBox.left) * 100) + "%";
+    el.style.height = ((cropBox.bottom - cropBox.top) * 100) + "%";
+    var hint = document.getElementById("cropHint");
+    if (hint) {{
+      hint.textContent =
+        "Crop " + cropBox.left.toFixed(2) + "," + cropBox.top.toFixed(2) +
+        " → " + cropBox.right.toFixed(2) + "," + cropBox.bottom.toFixed(2) +
+        ". Drag to move, corner to resize. Preview, then Save.";
+    }}
+  }}
+
+  function writeCropFieldsFromBox(box, opts) {{
+    opts = opts || {{}};
+    writingCrop = true;
+    var modeEl = document.getElementById("cropMode");
+    if (modeEl) modeEl.value = "arbitrary";
+    document.getElementById("cropLeft").value = String(round4(box.left));
+    document.getElementById("cropTop").value = String(round4(box.top));
+    document.getElementById("cropRight").value = String(round4(box.right));
+    document.getElementById("cropBottom").value = String(round4(box.bottom));
+    if (opts.resetZoom !== false) {{
+      var zEl = document.getElementById("zoom");
+      if (zEl) zEl.value = "1";
+    }}
+    writingCrop = false;
+  }}
+
+  function refreshCropFromForm() {{
+    if (writingCrop) return;
+    cropBox = computeCropBoxFromForm();
+    paintCropBox();
+  }}
+
+  function bindCropBox() {{
+    if (cropBound) return;
+    var el = document.getElementById("cropBox");
+    if (!el) return;
+    cropBound = true;
+    el.addEventListener("pointerdown", function (ev) {{
+      if (ev.button != null && ev.button !== 0) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      var resize = ev.target && ev.target.classList && ev.target.classList.contains("crop-handle");
+      var frame = el.parentElement.getBoundingClientRect();
+      var start = {{
+        x: ev.clientX,
+        y: ev.clientY,
+        left: cropBox.left,
+        top: cropBox.top,
+        right: cropBox.right,
+        bottom: cropBox.bottom,
+      }};
+      var ar = parseAspectRatio(document.getElementById("aspect").value);
+      try {{ el.setPointerCapture(ev.pointerId); }} catch (err) {{}}
+      function onMove(e) {{
+        var dx = (e.clientX - start.x) / Math.max(frame.width, 1);
+        var dy = (e.clientY - start.y) / Math.max(frame.height, 1);
+        var next;
+        if (resize) {{
+          var right = Math.min(1, Math.max(start.left + 0.02, start.right + dx));
+          var bottom = Math.min(1, Math.max(start.top + 0.02, start.bottom + dy));
+          next = {{ left: start.left, top: start.top, right: right, bottom: bottom }};
+          if (ar) {{
+            var bw = next.right - next.left;
+            var bh = next.bottom - next.top;
+            if (bw / bh > ar) next.right = next.left + bh * ar;
+            else next.bottom = next.top + bw / ar;
+            if (next.right > 1) {{
+              next.right = 1;
+              next.bottom = next.top + (next.right - next.left) / ar;
+            }}
+            if (next.bottom > 1) {{
+              next.bottom = 1;
+              next.right = next.left + (next.bottom - next.top) * ar;
+            }}
+            if (next.right - next.left < 0.02) next.right = next.left + 0.02;
+            if (next.bottom - next.top < 0.02) next.bottom = next.top + 0.02;
+          }}
+        }} else {{
+          var w = start.right - start.left;
+          var h = start.bottom - start.top;
+          var left = start.left + dx;
+          var top = start.top + dy;
+          if (left < 0) left = 0;
+          if (top < 0) top = 0;
+          if (left + w > 1) left = 1 - w;
+          if (top + h > 1) top = 1 - h;
+          next = {{ left: left, top: top, right: left + w, bottom: top + h }};
+        }}
+        cropBox = {{
+          left: round4(next.left),
+          top: round4(next.top),
+          right: round4(next.right),
+          bottom: round4(next.bottom),
+        }};
+        writeCropFieldsFromBox(cropBox);
+        paintCropBox();
+      }}
+      function onUp() {{
+        el.removeEventListener("pointermove", onMove);
+        el.removeEventListener("pointerup", onUp);
+        el.removeEventListener("pointercancel", onUp);
+        writeCropFieldsFromBox(cropBox);
+        paintCropBox();
+      }}
+      el.addEventListener("pointermove", onMove);
+      el.addEventListener("pointerup", onUp);
+      el.addEventListener("pointercancel", onUp);
+    }});
+  }}
+
+  function setCropSrcImg() {{
+    if (!cam) return;
+    var path = "/cameras/" + encodeURIComponent(cam) + "/original.jpg";
+    window.lanUi.swapImg(
+      "cropSrc",
+      withQuery(path, {{ w: cropPreviewW, v: String(Date.now()) }})
+    ).then(function () {{
+      var img = document.getElementById("cropSrc");
+      if (img && img.naturalWidth && img.naturalHeight) {{
+        window.lanUi.setPreviewAspect("cropSrc", img.naturalWidth, img.naturalHeight);
+      }}
+      paintCropBox();
+    }}).catch(function () {{
+      paintCropBox();
+    }});
+  }}
+
   function buildCrop() {{
     var crop = {{}};
     var mode = document.getElementById("cropMode").value;
@@ -1301,6 +1579,7 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     window.lanUi.setPreviewAspect("served", w, h);
     window.lanUi.setPreviewAspect("preview", w, h);
     paintMaskBoxes();
+    paintCropBox();
   }}
 
   function setPreviewHintVisible(show) {{
@@ -1362,6 +1641,9 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     syncPreviewAspectFromForm();
     setUrlField(meta.served_url || "");
     setServedImg(meta.served_url || "", currentJpegMtime);
+    refreshCropFromForm();
+    bindCropBox();
+    setCropSrcImg();
   }}
 
   function updatePublicLiveSummary(pl) {{
@@ -1739,6 +2021,30 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     loadMaskEditor();
   }});
 
+  ["cropMode", "cropLeft", "cropTop", "cropRight", "cropBottom", "widthFrac", "heightFrac", "zoom", "aspect"].forEach(function (id) {{
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("change", refreshCropFromForm);
+    el.addEventListener("input", refreshCropFromForm);
+  }});
+  document.getElementById("cropFull").onclick = function () {{
+    cropBox = {{ left: 0, top: 0, right: 1, bottom: 1 }};
+    var ar = parseAspectRatio(document.getElementById("aspect").value);
+    if (ar) cropBox = applyAspectToBox(cropBox, ar);
+    writeCropFieldsFromBox(cropBox);
+    paintCropBox();
+  }};
+  document.getElementById("cropMatchOut").onclick = function () {{
+    var w = numOrNull("outWidth");
+    var h = numOrNull("outHeight");
+    if (w && h && w > 0 && h > 0) {{
+      document.getElementById("aspect").value = String(Math.round(w)) + ":" + String(Math.round(h));
+    }}
+    cropBox = applyAspectToBox(cropBox, parseAspectRatio(document.getElementById("aspect").value));
+    writeCropFieldsFromBox(cropBox);
+    paintCropBox();
+  }};
+
   document.getElementById("save").onclick = async function () {{
     var btn = this;
     window.lanUi.clearBanner("msg");
@@ -1766,6 +2072,7 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
 
   window.addEventListener("resize", function () {{
     paintMaskBoxes();
+    paintCropBox();
   }});
 
   window.lanUi.resolveCamera().then(function (id) {{
@@ -1774,6 +2081,7 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
       window.lanUi.showBanner("msg", "bad", "No camera", "Set cameras: in the pipeline config.");
       return;
     }}
+    bindCropBox();
     loadList();
   }});
 }})();
@@ -1784,7 +2092,7 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
         body,
         active="variants",
         pipe_more=pipe_more,
-        # Wide like camera focus — large mask canvas needs room to aim windows.
+        # Wide like camera focus — large crop + mask canvases need room.
         extra_head="<style>body.svc-pipe main{max-width:min(80rem,calc(100vw - 2rem))}</style>",
     )
 
@@ -2235,6 +2543,42 @@ def make_handler(
                 self._json(200, payload)
                 return
 
+            if (
+                len(parts) == 3
+                and parts[0] == "cameras"
+                and parts[2] == "original.jpg"
+            ):
+                camera_id = parts[1]
+                src: Path | None = None
+                try:
+                    candidate = vedit.original_path(repo_root, camera_id)
+                    if candidate.is_file():
+                        src = candidate
+                except Exception:  # noqa: BLE001
+                    src = None
+                if src is None:
+                    for guess in (
+                        repo_root / "data" / camera_id / "original" / "latest.jpg",
+                        repo_root / "data" / camera_id / "originals" / "latest.jpg",
+                    ):
+                        if guess.is_file():
+                            src = guess
+                            break
+                if src is None or not src.is_file():
+                    self._json(
+                        404,
+                        {
+                            "error": "original not found",
+                            "camera": camera_id,
+                            "hint": "Run the pipeline once or POST /refresh to store latest.jpg",
+                        },
+                    )
+                    return
+                qs = parse_qs(parsed.query)
+                max_w = parse_max_width((qs.get("w") or [None])[0])
+                self._send_variant_jpeg(src, max_width=max_w)
+                return
+
             if len(parts) == 4 and parts[0] == "cameras" and parts[2] == "variants":
                 camera_id, filename = parts[1], parts[3]
                 name = filename.rsplit(".", 1)[0]
@@ -2322,6 +2666,7 @@ def make_handler(
                         "POST /system/restart-services",
                         "GET /system/status",
                         "GET /system/logs",
+                        "/cameras/<id>/original.jpg",
                         "/cameras/<id>/variants/<file>.jpg",
                         "/private/<id>.jpg",
                     ],
@@ -2418,6 +2763,19 @@ def make_handler(
                     self._json(400, {"error": str(exc)})
                 except OSError as exc:
                     self._json(400, {"error": f"could not write publish settings: {exc}"})
+                return
+
+            if path == "/setup/publish/test":
+                try:
+                    body = self._read_json_body(length) if length else {}
+                    result = probe_publish_connection(
+                        state.config,
+                        default_env_path(),
+                        body,
+                    )
+                    self._json(200, result)
+                except ValueError as exc:
+                    self._json(200, {"ok": False, "detail": str(exc)})
                 return
 
             if path == "/setup/wifi":

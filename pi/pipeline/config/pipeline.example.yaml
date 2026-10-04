@@ -21,11 +21,19 @@ http:
 
 # Credentials from the environment (see examples/pi/r2.env), not from this file.
 # Per-camera URL override: WEBCAM_<ID>_SOURCE_URL
+# Publish guide: docs/diy/PUBLISH.md
 publish:
   enabled: false
-  backend: r2   # r2 | local
+  backend: s3   # s3 | r2 (alias) | local
+  provider: off # off | r2 | s3 | local — Setup UI preset
   local_outbox: data/outbox
+  s3:
+    bucket: example-webcam
+    endpoint_url: null   # https://s3.example.com or R2 https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+    region: auto
+    force_path_style: false
+  # Legacy nested key (still read). Prefer s3: above.
   r2:
     bucket: example-webcam
-    endpoint_url: null   # https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+    endpoint_url: null
     region: auto

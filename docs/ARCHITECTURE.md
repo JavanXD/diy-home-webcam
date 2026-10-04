@@ -42,7 +42,7 @@ Local LAN JPEG filenames are `{variant}.jpg` (e.g. `landscape.jpg`, `wide.jpg`, 
 - Encoder: `scripts/make-timelapse.py` (GIF or APNG from a folder of JPEGs) remains for offline use.
 - Retention: `cameras/*/camera.yaml` → `timelapse.retention_days` (default **400**) plus a size budget `timelapse.max_gb` (default **40**) under `data/<camera>/timelapse/`. Oldest day folders (and their exports) are pruned when over either limit. `publish.history.retention_days` still applies if bucket history is turned on; prune with `scripts/prune-history.py`.
 - Nothing from the Timelapse page is uploaded to Cloudflare; MP4/GIF exports stay on the Pi for local download.
-- Bucket bootstrap: `scripts/setup-r2.sh` (requires R2 enabled on the your Cloudflare account first).
+- Bucket bootstrap: `scripts/setup-r2.sh` (requires R2 enabled on the Bollenhut Cloudflare account first).
 
 ## Multi-camera
 

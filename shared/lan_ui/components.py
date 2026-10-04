@@ -43,7 +43,7 @@ def lan_link(
     text = f"<strong>{escape(label)}</strong>" if strong else escape(label)
     return (
         f'<a{cls} data-lan-port="{port}" data-lan-path="{escape(path, quote=True)}" '
-        f'href="http://home-webcam.local:{port}{escape(path, quote=True)}">{text}</a>'
+        f'href="http://raspicam.local:{port}{escape(path, quote=True)}">{text}</a>'
     )
 
 
@@ -251,15 +251,15 @@ def camera_debug_panel_html(*, health_url: str = "/health") -> str:
 
 
 def rewrite_host_links_js(element_ids: Iterable[str]) -> str:
-    """Optional helper: rewrite hardcoded home-webcam.local host in given element ids."""
+    """Optional helper: rewrite hardcoded raspicam.local host in given element ids."""
     ids = ",".join(f'"{escape(i, quote=True)}"' for i in element_ids)
     return f"""
 (function () {{
-  var h = location.hostname || "home-webcam.local";
+  var h = location.hostname || "raspicam.local";
   [{ids}].forEach(function (id) {{
     var el = document.getElementById(id);
     if (!el || !el.href) return;
-    el.href = el.href.replace("home-webcam.local", h);
+    el.href = el.href.replace("raspicam.local", h);
   }});
 }})();
 """.strip()

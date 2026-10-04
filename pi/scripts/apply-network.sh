@@ -129,7 +129,7 @@ for name in "${CONNS[@]}"; do
   nmcli connection up "$name" 2>/dev/null || true
 done
 
-# Avahi must stay for home-webcam.local
+# Avahi must stay for raspicam.local
 if ! systemctl is-active --quiet avahi-daemon; then
   echo "WARN: avahi-daemon not active — enabling (needed for .local)" >&2
   systemctl enable --now avahi-daemon 2>/dev/null || true
@@ -150,10 +150,10 @@ if getent hosts cloudflare.com >/dev/null 2>&1; then
 else
   echo "      WARN: cloudflare.com lookup failed" >&2
 fi
-if getent hosts home-webcam.local >/dev/null 2>&1 || true; then
+if getent hosts raspicam.local >/dev/null 2>&1 || true; then
   # mDNS from getent may not always resolve on the host itself; avahi-resolve is better
   if command -v avahi-resolve >/dev/null 2>&1; then
-    avahi-resolve -n home-webcam.local 2>/dev/null | sed 's/^/      /' || echo "      (avahi-resolve soft-fail; clients on LAN still OK)"
+    avahi-resolve -n raspicam.local 2>/dev/null | sed 's/^/      /' || echo "      (avahi-resolve soft-fail; clients on LAN still OK)"
   fi
 fi
 

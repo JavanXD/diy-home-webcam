@@ -33,10 +33,10 @@ def test_format_temp_german():
 
 
 def test_format_site_badge():
-    assert format_site_badge("webcam.example.com") == "webcam.example.com"
+    assert format_site_badge("ferienpark-schellbronn.de") == "ferienpark-schellbronn.de"
     assert (
-        format_site_badge("webcam.example.com", 12.4)
-        == "webcam.example.com  ·  12,4 °C"
+        format_site_badge("ferienpark-schellbronn.de", 12.4)
+        == "ferienpark-schellbronn.de  ·  12,4 °C"
     )
 
 
@@ -180,7 +180,7 @@ def test_render_one_maintenance_no_anisotropic_stretch():
             "output": {"width": 1600, "height": 900},
             "site_badge": {
                 "enabled": True,
-                "site": "webcam.example.com",
+                "site": "ferienpark-schellbronn.de",
                 "font_size": 22,
                 "margin": 28,
             },
@@ -288,7 +288,7 @@ def test_render_variants_maintenance_clock_minute_busts_cache(tmp_path: Path):
         "visibility": "public",
         "crop": {"mode": "full"},
         "output": {"width": 400, "height": 225, "filename": "landscape.jpg"},
-        "site_badge": {"enabled": True, "site": "webcam.example.com"},
+        "site_badge": {"enabled": True, "site": "ferienpark-schellbronn.de"},
         "watermark": {"enabled": False},
         "timestamp": {"enabled": False},
         "publish": True,
@@ -341,7 +341,7 @@ def test_render_one_site_badge_public_only():
         "visibility": "public",
         "crop": {"mode": "full"},
         "output": {"width": 400, "height": 225},
-        "site_badge": {"enabled": True, "site": "webcam.example.com"},
+        "site_badge": {"enabled": True, "site": "ferienpark-schellbronn.de"},
         "watermark": {"enabled": False},
         "timestamp": {"enabled": False},
     }

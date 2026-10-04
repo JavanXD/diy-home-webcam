@@ -32,13 +32,13 @@ _TEMPLATE_FILES = {
 # Short English help for the LAN editor (and API consumers).
 FIELD_HELP: dict[str, str] = {
     "description": "Optional note — saved in the settings file only.",
-    "crop.mode": "How to pick the area of the full camera frame: entire frame, centered box, or custom left/top/right/bottom edges.",
-    "crop.ltrb": "Custom crop edges as fractions of the full frame (0 = left/top edge, 1 = right/bottom edge). Used only in arbitrary mode.",
+    "crop.mode": "How to pick the area of the full camera frame: entire frame, centered box, or custom left/top/right/bottom edges. Dragging the cyan crop box switches to arbitrary.",
+    "crop.ltrb": "Custom crop edges as fractions of the full frame (0 = left/top edge, 1 = right/bottom edge). Drag the cyan rectangle on Edit crop, or type values. Used in arbitrary mode.",
     "crop.width_frac": "Centered mode: how much of the frame width to keep (0.5 = half width), before zoom.",
     "crop.height_frac": "Centered mode: how much of the frame height to keep (0.5 = half height), before zoom.",
-    "crop.zoom": "1 = no zoom. Values above 1 zoom into the center of the crop without stretching.",
-    "crop.aspect_ratio": "Crop width:height (e.g. 16:9) before scaling to output size. Match the output size for a clean scale.",
-    "output.width": "Final image width in pixels. The crop is scaled to fill this size without squashing.",
+    "crop.zoom": "1 = no zoom. Values above 1 zoom into the center of the crop without stretching. Dragging the crop box resets zoom to 1.",
+    "crop.aspect_ratio": "Crop width:height (e.g. 16:9) before scaling to output size. Match the output size for a clean scale. When set, resize locks to this ratio.",
+    "output.width": "Final image width in pixels. The crop is scaled to fill this size without squashing (cover-fit).",
     "output.height": "Final image height in pixels.",
     "output.jpeg_quality": "JPEG quality from 1 (small) to 95 (large). Public frames are usually 78–85.",
     "privacy.masks": "Hide neighbors. Drag a rectangle on the preview, or type one line as left,top,right,bottom,mode,strength — optional label after #. Labels stay in the settings file only.",

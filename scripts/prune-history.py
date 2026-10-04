@@ -7,8 +7,8 @@ Examples:
   # Local outbox only
   python3 scripts/prune-history.py --local data/outbox/history --days 90
 
-  # R2 (requires env from example-webcam-r2.env)
-  set -a && source ~/Projects/.secrets/example-webcam-r2.env && set +a
+  # R2 (requires env from home-webcam-r2.env)
+  set -a && source ~/Projects/.secrets/home-webcam-r2.env && set +a
   python3 scripts/prune-history.py --r2 --prefix history/example --days 90 --dry-run
 """
 

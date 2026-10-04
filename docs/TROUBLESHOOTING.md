@@ -9,8 +9,8 @@ Fail-safe rule for the whole system: **never replace a good image with a bad/emp
 ./scripts/diagnose.sh
 
 # Remote (both services on the camera Pi)
-PI_URL=http://home-webcam.local:8080 \
-PIPE_URL=http://home-webcam.local:8090 \
+PI_URL=http://raspicam.local:8080 \
+PIPE_URL=http://raspicam.local:8090 \
   ./scripts/diagnose.sh
 ```
 
@@ -114,7 +114,7 @@ Expected while Wartungsbild is on; logs once per ON/OFF transition (not every po
 
 ### R2 API error 10042 / setup-r2 fails
 
-R2 is not enabled yet on the your Cloudflare account. Enable R2 once in the dashboard, then re-run `the Cloudflare dashboard / Wrangler`. Create `your R2 secrets env file` from `pi/pipeline/config/r2.env.example`.
+Enable R2 (or your S3-compatible store), then create bucket credentials and install them as `/etc/webcam-pipeline/env` from `pi/pipeline/config/r2.env.example`.
 
 ### Public site shows old image / 503
 

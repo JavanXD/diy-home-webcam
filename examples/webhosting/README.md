@@ -1,6 +1,6 @@
 # Public site template
 
-`webhosting/` in this checkout is the sample site in a private ops checkout. For another camera:
+`webhosting/` holds the Worker + landing for *your* public site. Template notes:
 
 1. Copy [`wrangler.jsonc`](wrangler.jsonc) over `webhosting/wrangler.jsonc` and set your account, zone, and bucket. After the custom domain works, keep `workers_dev` and `preview_urls` false.
 2. In `webhosting/worker/src/index.ts`, change `LIVE_MAP` so the public path matches `publish.public_live_key` in the camera file. Example:

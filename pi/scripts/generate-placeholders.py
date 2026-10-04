@@ -4,7 +4,7 @@
 Source (prefer in order):
   1. --source PATH
   2. PLACEHOLDER_PHOTO_SOURCE env
-  3. pi/scripts/assets/example-forest-source.jpg (vendored landscape crop)
+  3. pi/scripts/assets/schellbronn-forest-source.jpg (vendored landscape crop)
   4. ~/Projects/Ferienhaus/docs/photos/gallery-forest.jpg (gallery master)
 
 Outputs:
@@ -48,7 +48,7 @@ from shared.brand_overlay import (  # noqa: E402
 )
 
 ASSETS = Path(__file__).resolve().parent / "assets"
-VENDOR_SOURCE = ASSETS / "example-forest-source.jpg"
+VENDOR_SOURCE = ASSETS / "schellbronn-forest-source.jpg"
 FERIENHAUS_MASTER = (
     Path.home() / "Projects/Ferienhaus/docs/photos/gallery-forest.jpg"
 )
@@ -113,10 +113,10 @@ def make_vendor_source(master: Path) -> Path:
     _save_jpeg(crop, VENDOR_SOURCE, quality=92)
     source_txt = ASSETS / "SOURCE.txt"
     source_txt.write_text(
-        "DIY placeholder source\n"
+        "Schellbronn forest placeholder source\n"
         "=====================================\n"
         "Master: Ferienhaus/docs/photos/gallery-forest.jpg\n"
-        "  (example.com gallery key \"forest\")\n"
+        "  (dasbollenhuthaus.de gallery key \"forest\")\n"
         "This file is a landscape center/upper crop for cover-fit to\n"
         f"camera still {CAPTURE_SIZE[0]}×{CAPTURE_SIZE[1]} and 16:9 slides.\n"
         "Regenerate outputs: python3 pi/scripts/generate-placeholders.py\n"
@@ -172,7 +172,7 @@ def main() -> int:
     parser.add_argument(
         "--refresh-vendor",
         action="store_true",
-        help="Rebuild pi/scripts/assets/example-forest-source.jpg from your source photo / --source",
+        help="Rebuild pi/scripts/assets/schellbronn-forest-source.jpg from Ferienhaus master / --source",
     )
     args = parser.parse_args()
 

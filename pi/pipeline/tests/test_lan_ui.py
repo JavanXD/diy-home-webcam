@@ -20,7 +20,7 @@ def test_lan_title_stays_generic_even_when_camera_has_a_display_name():
     items = variant_menu_items(REPO, "example")
     html = lan_ui.page("Camera home", "<p>x</p>", active="camera", pipe_more=items)
     assert "<title>Webcam — Camera home</title>" in html
-    assert "Webcam Example" not in html
+    assert "Webcam Schellbronn" not in html
 
 
 def test_lan_ui_page_chrome_and_tokens():
@@ -89,7 +89,7 @@ def test_lan_ui_page_chrome_and_tokens():
     assert "/debug/ui" not in cam_menu
     assert "Variants UI" not in cam_menu
     assert "/schedule" not in cam_menu
-    assert "example" not in cam_menu
+    assert "schellbronn" not in cam_menu
     assert 'data-lan-port="8090"' in pipe_menu
     assert 'data-lan-path="/health"' in pipe_menu
     assert 'data-lan-path="/schedule"' in pipe_menu
@@ -98,7 +98,7 @@ def test_lan_ui_page_chrome_and_tokens():
     assert 'data-lan-path="/variants/ui"' not in pipe_menu
     assert "Variants UI" not in pipe_menu
     assert 'data-lan-path="/public-live"' in pipe_menu
-    assert "example" not in pipe_menu
+    assert "schellbronn" not in pipe_menu
     assert "/image.jpg" not in pipe_menu
     assert "/raw.jpg" not in pipe_menu
     assert 'data-lan-path="/maintenance"' not in pipe_menu
@@ -302,18 +302,27 @@ def test_pipeline_ui_strings():
     assert "lanUi.confirm" in variants
     assert "mask-edit-stage" in variants
     assert "Edit masks" in variants
+    assert "crop-edit-stage" in variants
+    assert "Edit crop" in variants
+    assert 'id="cropSrc"' in variants
+    assert 'id="cropBox"' in variants
+    assert "original.jpg" in variants
+    assert "crop-layer" in lan_ui.css()
+    assert "crop-box" in lan_ui.css()
     assert 'class="preview-secondary"' in variants
     assert "preview-frame" in variants
     assert "preview-hint" in variants
     assert "is-sharp" in variants
     assert "80rem" in variants
-    # Hint sits above compact Preview dry-run; large Edit masks canvas is earlier
+    # Hint sits above compact Preview dry-run; large Edit crop/masks canvases are earlier
+    assert variants.index("Edit crop") < variants.index("Edit masks")
     assert variants.index("Edit masks") < variants.index('class="muted preview-hint"')
     assert variants.index('class="muted preview-hint"') < variants.index('class="preview-secondary"')
-    # Compact Preview column has no mask layer (drag only on Edit masks)
+    # Compact Preview column has no mask/crop layer (drag only on Edit stages)
     preview_col = variants[variants.index("Preview (unsaved)") : variants.index("actions-sticky")]
     assert "preview-hint" not in preview_col
     assert "mask-layer" not in preview_col
+    assert "crop-layer" not in preview_col
     assert "servedMasks" in variants
     assert "previewMasks" not in variants
     assert "swapImg" in variants

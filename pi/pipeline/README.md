@@ -1,6 +1,6 @@
 # LAN pipeline
 
-Runs on the same Raspberry Pi as the camera (`webcam-pipeline.service`, port 8090). Pulls originals from `127.0.0.1:8080`, renders variants, serves private images to Home Assistant, and publishes public JPEGs to R2 (or a local outbox).
+Runs on the same Raspberry Pi as the camera (`webcam-pipeline.service`, port 8090). Pulls originals from `127.0.0.1:8080`, renders variants, serves private images to Home Assistant, and publishes public JPEGs to any S3-compatible store (or a local outbox).
 
 ## Run (against local camera appliance)
 
@@ -37,7 +37,7 @@ Private URLs:
 - `POST /refresh` with `{"render_only":true}` — regenerate from stored original only
 - `POST /cameras/example/refresh` — same, camera in path
 
-**Public night schedule:** by default solar (±30 min around sunrise/sunset for Example). While offline, R2 live JPG is a placeholder (“Wieder da ab …”); private HA camera is unchanged. Upload a custom JPEG in the schedule UI or keep the shipped default.
+**Public night schedule:** by default solar (±30 min around sunrise/sunset for your camera location). While offline, R2 live JPG is a placeholder (“Wieder da ab …”); private HA camera is unchanged. Upload a custom JPEG in the schedule UI or keep the shipped default.
 
 **Timestamp burn-in:** variant YAML `timestamp.format` is Europe/Berlin wall clock (`%Y-%m-%d %H:%M` via `camera.yaml` `timezone`) — no `CEST`/`UTC` suffix (`%Z` avoided on purpose).
 
@@ -46,26 +46,26 @@ Acquire/publish failures keep last-good local files (fail-safe).
 
 See [docs/TROUBLESHOOTING.md](../docs/TROUBLESHOOTING.md) and `../scripts/diagnose.sh`.
 
-## R2 publish
+## Publish (S3-compatible)
 
-Set in the environment (or `/etc/webcam-pipeline/env`):
+Full guide: [docs/diy/PUBLISH.md](../../docs/diy/PUBLISH.md). Setup UI: `:8090/setup/ui`.
 
 ```bash
 export AWS_ACCESS_KEY_ID=...
 export AWS_SECRET_ACCESS_KEY=...
-export AWS_ENDPOINT_URL=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
-export R2_BUCKET=example-webcam
+export AWS_ENDPOINT_URL=https://<ACCOUNT_ID>.r2.cloudflarestorage.com   # or MinIO / AWS / …
+export R2_BUCKET=example-webcam   # or S3_BUCKET=
 ```
-
-Enable in `pipeline.yaml`:
 
 ```yaml
 publish:
   enabled: true
-  backend: r2
-  r2:
+  backend: s3          # s3 | r2 (alias) | local
+  s3:
     bucket: example-webcam
-    endpoint_url: https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+    endpoint_url: https://s3.example.com
+    region: auto
+    force_path_style: false
 ```
 
-Without credentials, use `backend: local` to write `data/outbox/` with the same key layout.
+Legacy `backend: r2` and nested `r2:` still work. Without remote credentials, use `backend: local` for `data/outbox/`, or `enabled: false` to skip upload.

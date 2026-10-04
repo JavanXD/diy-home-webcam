@@ -23,6 +23,8 @@ There is no second BOM in this repo — link here from README / DIY hub. Do not 
 
 **Named goods subtotal** (camera + lens + HAT + cable + NVMe + microSD, excl. shipping): about **303 €**. Board, case, and PSU not included.
 
+![Pi 5 case open with M.2 HAT+ Compact, Kingston NVMe 500 GB, SanDisk Extreme PRO microSD](images/pi-nvme-hat-sd.jpg)
+
 ## Camera and lens (focus gotcha)
 
 The lens is CS-mount. The camera arrives with a C-mount adapter ring already fitted. **Take that ring off** before you screw this lens on. Leave the ring in place and a distant subject never gets sharp; turning further unscrews the lens instead of focusing. Steps: [BUILD.md](BUILD.md) § Focus.

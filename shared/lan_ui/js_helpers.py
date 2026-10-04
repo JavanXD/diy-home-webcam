@@ -286,7 +286,7 @@ window.lanUi = (function () {
 
 NAV_REWRITE_JS = """
 (function () {
-  var h = location.hostname || "home-webcam.local";
+  var h = location.hostname || "raspicam.local";
   var here = String(location.port || "");
   document.querySelectorAll("a[data-lan-port]").forEach(function (a) {
     var port = a.getAttribute("data-lan-port");

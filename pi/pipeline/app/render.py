@@ -371,7 +371,7 @@ def render_one(
     if maintenance and width and height:
         # Cover-fit the photo, then draw the words at output pixels.
         # No photo installed → a plain dark slide (a copied project deletes
-        # the Example forest assets).
+        # shipped forest placeholder assets).
         base_path = _maintenance_base_path(repo_root)
         if base_path is not None:
             photo = Image.open(base_path).convert("RGB")

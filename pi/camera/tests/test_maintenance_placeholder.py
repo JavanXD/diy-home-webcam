@@ -1,4 +1,4 @@
-"""Camera maintenance JPEG when the Example photo is not installed."""
+"""Camera maintenance JPEG when a custom maintenance photo is not installed."""
 
 from __future__ import annotations
 

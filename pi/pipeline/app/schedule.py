@@ -337,7 +337,7 @@ class PublicSchedule:
 
         A custom upload wins. Otherwise the text-free forest base, when that
         file is still installed. A copied project that deletes it gets a plain
-        dark slide instead of the Example photo.
+        dark slide instead of a custom night photo.
         """
         if self.custom_placeholder.exists():
             return self.custom_placeholder

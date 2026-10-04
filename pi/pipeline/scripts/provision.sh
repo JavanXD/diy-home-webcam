@@ -35,8 +35,8 @@ if [[ ! -f "$CONFIG_DIR/pipeline.yaml" ]]; then
 fi
 
 # Optional: copy R2 env if present on the operator machine path
-if [[ -f "$HOME/Projects/.secrets/example-webcam-r2.env" ]]; then
-  sudo cp "$HOME/Projects/.secrets/example-webcam-r2.env" "$CONFIG_DIR/env"
+if [[ -f "$HOME/Projects/.secrets/schellbronn-webcam-r2.env" ]]; then
+  sudo cp "$HOME/Projects/.secrets/schellbronn-webcam-r2.env" "$CONFIG_DIR/env"
   sudo chmod 600 "$CONFIG_DIR/env"
   sudo chown root:"$APP_USER" "$CONFIG_DIR/env"
   echo "installed $CONFIG_DIR/env from secrets store"

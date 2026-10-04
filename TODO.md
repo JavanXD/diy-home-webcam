@@ -1,7 +1,7 @@
 # DIY roadmap
 
-- [ ] Optional: desk photo `docs/diy/images/pi-camera-assembly.jpg`
+- [x] Hardware photos — `docs/diy/images/pi-camera-assembly.jpg`, `pi-full-setup.jpg`, `pi-nvme-hat-sd.jpg`
+- [x] Visual crop editor on Variants (cyan box on full frame; yellow masks unchanged)
 - [ ] Optional: name a 27 W USB-C PD PSU in [docs/diy/SHOPPING-LIST.md](docs/diy/SHOPPING-LIST.md)
-- [ ] Optional: visual crop editor (masks already drag-editable)
 
 Start here: [docs/diy/README.md](docs/diy/README.md) · [examples/README.md](examples/README.md)

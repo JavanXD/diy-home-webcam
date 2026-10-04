@@ -1,4 +1,4 @@
-"""Brand tokens + Pillow helpers for JPEG overlays.
+"""Ferienhaus / Bollenhut brand tokens + Pillow helpers for JPEG overlays.
 
 Typography: Ferienhaus web uses Playfair Display (headings) + Inter (body) via
 next/font — not vendored as TTF. On Pi/Mac we approximate with system fonts:
@@ -90,7 +90,7 @@ def format_back_at_lines(
     """Label + time for the night slide, e.g. ``Back at`` / ``tomorrow 08:00``.
 
     Wording comes from ``copy``. When ``copy`` is omitted the English default
-    is used. A site may pass a German block from ``camera.yaml``.
+    is used. A site camera may pass a German block from ``camera.yaml``.
     """
     text = copy or StatusCopy.english()
     tz = ZoneInfo(tz_name)
@@ -299,7 +299,7 @@ def compose_status_slide(
     return base
 
 
-# The bake script may still use German strings. Runtime slides use
+# The bake script may still use these German strings. Runtime slides use
 # StatusCopy: English unless cameras/<id>/camera.yaml sets status_text.
 WARTUNG_TITLE = "Wartung"
 WARTUNG_BODY = "Die Live-Webcam ist vorübergehend nicht verfügbar."

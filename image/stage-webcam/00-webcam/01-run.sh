@@ -24,7 +24,7 @@ rsync -a --delete \
   --exclude 'webhosting/node_modules' \
   "${REPO_ROOT}/" "${TARGET_OPT}/"
 
-# Generic DIY defaults (generic DIY).
+# Generic DIY defaults.
 install -d -m 755 "${TARGET_OPT}/cameras/example"
 rsync -a "${REPO_ROOT}/examples/cameras/example/" "${TARGET_OPT}/cameras/example/"
 
@@ -47,7 +47,7 @@ install -m 644 "${REPO_ROOT}/image/first-boot/webcam-image-first-boot.service" \
 install -m 755 "${REPO_ROOT}/image/first-boot/webcam-image-first-boot.sh" \
   "${ROOTFS_DIR}/usr/local/sbin/webcam-image-first-boot.sh"
 
-# Hostname for DIY image (Live ops hosts keep their own hostname).
+# Hostname for DIY image (ops live host may differ).
 echo "home-webcam" > "${ROOTFS_DIR}/etc/hostname"
 if [[ -f "${ROOTFS_DIR}/etc/hosts" ]]; then
   if grep -qE 'raspberrypi|home-webcam' "${ROOTFS_DIR}/etc/hosts"; then

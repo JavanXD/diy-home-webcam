@@ -13,8 +13,8 @@ from app.camera_profile import load_camera_profile  # noqa: E402
 
 
 def test_source_url_env_override(monkeypatch):
-    monkeypatch.setenv("WEBCAM_EXAMPLE_SOURCE_URL", "http://10.0.0.9:8080/raw.jpg")
-    monkeypatch.setenv("WEBCAM_EXAMPLE_HEALTH_URL", "http://10.0.0.9:8080/health")
+    monkeypatch.setenv("WEBCAM_SCHELLBRONN_SOURCE_URL", "http://10.0.0.9:8080/raw.jpg")
+    monkeypatch.setenv("WEBCAM_SCHELLBRONN_HEALTH_URL", "http://10.0.0.9:8080/health")
     profile = load_camera_profile(REPO, "example")
     assert profile.source_url == "http://10.0.0.9:8080/raw.jpg"
     assert profile.health_url == "http://10.0.0.9:8080/health"
@@ -23,9 +23,9 @@ def test_source_url_env_override(monkeypatch):
     assert profile.timelapse.get("enabled") is True
     assert profile.timelapse.get("max_gb") == 40
     assert profile.timelapse.get("retention_days") == 400
-    assert profile.status_text.night_title == "Offline at night"
-    assert profile.status_text.maintenance_title == "Maintenance"
-    assert profile.status_text.back_at_label == "Back at"
+    assert profile.status_text.night_title == "Nachts offline"
+    assert profile.status_text.maintenance_title == "Wartung"
+    assert profile.status_text.back_at_label == "Wieder da ab"
 
 
 def test_make_timelapse_script(tmp_path: Path):

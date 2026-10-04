@@ -1,7 +1,7 @@
 """LAN favicon assets + HTML head links (camera :8080 + pipeline :8090).
 
 LAN appliance icon (camera mark). The public site keeps its own favicons.
-favicon and not the site logo. Served from ``shared/lan_ui/assets/``.
+favicon and not the Bollenhut logo. Served from ``shared/lan_ui/assets/``.
 """
 
 from __future__ import annotations

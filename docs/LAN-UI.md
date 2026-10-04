@@ -33,11 +33,11 @@ The green/red navbar can jump across ports; page **bodies** stay service-scoped.
 
 | Item | Detail |
 |------|--------|
-| UI | `http://home-webcam.local:8090/variants/ui` (primary red nav **Variants**) |
+| UI | `http://raspicam.local:8090/variants/ui` (primary red nav **Variants**) |
 | Flow | Create → edit crop/masks/output/overlays → Preview → Save; mark one **public** variant as the **public livestream**. Gallery splits **Private (LAN-only)** (badge “LAN only”; home network only; not for the public website/livestream; e.g. Home Assistant) vs **Public variants**. |
 | Create | `POST /variants` — name + template (`private` or `landscape-public`); JPEG filename auto `{name}.jpg`; atomic YAML under `cameras/<id>/variants/` |
-| Editable | `description`, `crop` (mode, LTRB, width/height fracs, zoom, aspect_ratio), `privacy.masks` (drag rectangles on the large **Edit masks** canvas, or one line per mask; optional per-mask `label` / `note` — admin only, not drawn), `output.width` / `height` / `jpeg_quality`, `timestamp` (incl. `stroke_width`), `site_badge` (incl. `stroke_width`), `artistic` |
-| Layout | Wide main (`min(80rem, …)` like camera focus). One full-width **Edit masks** frame (saved/live JPEG + drag layer) under Privacy masks; compact **Preview (unsaved)** dry-run below Advanced overlays / sticky actions. Mask layer sized to `object-fit: contain` content box so percent coords stay correct. |
+| Editable | `description`, `crop` (drag cyan rectangle on **Edit crop** over the stored original, or mode/LTRB/width/height fracs/zoom/aspect_ratio fields), `privacy.masks` (drag rectangles on the large **Edit masks** canvas, or one line per mask; optional per-mask `label` / `note` — admin only, not drawn), `output.width` / `height` / `jpeg_quality`, `timestamp` (incl. `stroke_width`), `site_badge` (incl. `stroke_width`), `artistic` |
+| Layout | Wide main (`min(80rem, …)` like camera focus). Full-width **Edit crop** (stored original via `GET /cameras/<id>/original.jpg` + cyan drag box) under Crop; full-width **Edit masks** (saved/live JPEG + yellow drag layer) under Privacy masks; compact **Preview (unsaved)** dry-run below Advanced overlays / sticky actions. Crop/mask layers sized to `object-fit: contain` content box so percent coords stay correct. Cover-fit output (no stretch). |
 | Read-only | `name`, `visibility`, `output.filename` / R2 keys, `publish`, `watermark` |
 | Help text | Each control has a short plain-English “what it’s for” note; API also returns `field_help` on `GET /variants/<name>` |
 | Fit | Live + Preview scale the crop to fill output WxH without stretching. Optional `artistic.*` is the only intentional mild stretch. Prefer `crop.aspect_ratio` matching output AR. |
@@ -52,7 +52,7 @@ The green/red navbar can jump across ports; page **bodies** stay service-scoped.
 ### Sync / pull
 
 1. Tune on Pi via `/variants/ui` → YAML updates under `/opt/home-webcam-pipeline/cameras/`.
-2. **Pull before sync:** `./pi/scripts/pull-cameras-from-pi.sh pi@home-webcam.local`
+2. **Pull before sync:** `./pi/scripts/pull-cameras-from-pi.sh pi@raspicam.local`
 3. `sync-to-pi.sh` uses `--delete` on `cameras/` — without a pull, Mac YAML overwrites Pi edits (including newly created variants).
 
 `webcam-pipeline` needs `ReadWritePaths=…/cameras` and `fix-data-perms.sh` ownership so the `webcam` user can write variant YAML.
@@ -64,7 +64,7 @@ Each port cluster has primary page links plus a collapsible **More** menu for th
 | Cluster | Primary (UI pages) | More (JSON / JPEG only) |
 |---------|---------------------|-------------------------|
 | Green `:8080` | Camera home, Maintenance | Health/Status/Debug/Maintenance (JSON), Live image |
-| Red `:8090` | Pipeline home, Schedule, Variants, Setup, Timelapse | Health/Status/Debug/System status/System logs/Schedule/Variants/Public livestream (JSON), plus that camera’s variant JPEGs when `cameras/<id>/variants/*.yaml` exists. The document title is always `Webcam`, not the camera `display_name`. Setup edits `camera.yaml` (name, place, weather URL) and can join Wi-Fi. The password is not stored in the repo. Timelapse lists daylight days on the Pi (storage budget shown), builds MP4/GIF locally, and offers file downloads. |
+| Red `:8090` | Pipeline home, Schedule, Variants, Setup, Timelapse | Health/Status/Debug/System status/System logs/Schedule/Variants/Public livestream (JSON), plus that camera’s variant JPEGs when `cameras/<id>/variants/*.yaml` exists. The document title is always `Webcam`, not the camera `display_name`. Setup edits `camera.yaml` (name, place, weather URL), publish (R2 / custom S3 / local / off + test connection), and can join Wi-Fi. The password is not stored in the repo. Timelapse lists daylight days on the Pi (storage budget shown), builds MP4/GIF locally, and offers file downloads. |
 
 More is keyboard-accessible (Arrow keys, Escape), closes on outside click, and works on touch. Endpoint lists live in `_MORE_CAM` / `_MORE_PIPE` in `chrome.py`.
 

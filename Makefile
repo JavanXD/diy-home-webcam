@@ -20,6 +20,7 @@ timelapse:
 	  --width 960 --delay-ms 150 --max-frames 300
 
 sync-logo:
+	python3 scripts/sync-bollenhut-watermark.py
 
 setup-r2:
 	./scripts/setup-r2.sh
