@@ -64,7 +64,7 @@ Each port cluster has primary page links plus a collapsible **More** menu for th
 | Cluster | Primary (UI pages) | More (JSON / JPEG only) |
 |---------|---------------------|-------------------------|
 | Green `:8080` | Camera home, Maintenance | Health/Status/Debug/Maintenance (JSON), Live image |
-| Red `:8090` | Pipeline home, Schedule, Variants, Setup, Timelapse | Health/Status/Debug/System status/System logs/Schedule/Variants/Public livestream (JSON), plus that camera’s variant JPEGs when `cameras/<id>/variants/*.yaml` exists. The document title is always `Webcam`, not the camera `display_name`. Setup shows **Find this Pi** (hostname, `*.local`, current / last LAN IPv4), edits `camera.yaml` (name, place, weather URL), publish (R2 / custom S3 / local / off + test connection; Worker optional for hotlink), and can join Wi-Fi. The password is not stored in the repo. Timelapse lists daylight days on the Pi (storage budget shown), builds MP4/GIF locally, and offers file downloads. |
+| Red `:8090` | Pipeline home, Schedule, Variants, Setup, Timelapse | Health/Status/Debug/System status/System logs/Schedule/Variants/Public livestream (JSON), plus that camera’s variant JPEGs when `cameras/<id>/variants/*.yaml` exists. The document title is always `Webcam`, not the camera `display_name`. Setup shows **Find this Pi** (hostname, `*.local`, current / last LAN IPv4), edits `camera.yaml` (name, place, weather URL, poll interval, public slide language EN/DE), publish (R2 / custom S3 / local / off + test connection; Worker optional for hotlink), and can join Wi-Fi. The password is not stored in the repo. Timelapse shows a chronological **History** list (newest first: date, frame count, playback length), builds MP4/GIF locally, and offers file downloads; the archive card edits budget / retention / frame interval / enable (also in `camera.yaml` `timelapse`). |
 
 More is keyboard-accessible (Arrow keys, Escape), closes on outside click, and works on touch. Endpoint lists live in `_MORE_CAM` / `_MORE_PIPE` in `chrome.py`.
 
@@ -119,6 +119,22 @@ Panels use a uppercase `panel-head` + `panel-body`; page headers include an opti
 - **Mode panels** — Schedule shows solar *or* fixed fields based on mode (not both).
 - **Empty states** — dashed `.empty-state` in galleries when no variants.
 - **Gallery rows** — keyboard-focusable (`tabindex`, Enter/Space); livestream action is a nested button with `stopPropagation`.
+
+### YAML vs WebUI (operator map)
+
+WebUI-first operators can stay on LAN pages for day-to-day tuning. Advanced / rare keys stay in YAML on purpose.
+
+| Area | In WebUI | Still YAML-only (intentional) |
+|------|----------|-------------------------------|
+| Project / place | Setup: display name, timezone, lat/lon, weather URL+TTL, site label, public live key, **poll interval**, **public slide language** (EN/DE) | `source.*`, `storage.*` paths, `publish.history.*`, R2 prefix keys |
+| Publish credentials | Setup → Publish (provider + env keys) | Raw `pipeline.yaml` bind/logging; nested legacy `r2:` vs `s3:` shape beyond Setup |
+| Schedule | Schedule page (mode, offsets, placeholder JPEG) | — (location is Setup-only) |
+| Variants | Crop (drag), masks, output WxH/quality, timestamp, site badge, artistic; public-live picker | `visibility` / create template; `output.filename` / R2 keys; `publish` flag; `watermark` |
+| Timelapse | History list + exports; **Save archive settings** (enabled, max GB, retention days, frame interval) | `max_bytes` instead of `max_gb` (UI writes `max_gb`) |
+| Maintenance | Camera `:8080` Maintenance | Capture appliance `/etc/webcam-camera/camera.yaml` (resolution, exposure, AWB, capture interval) |
+| Status copy | Setup EN/DE presets | Fully custom `status_text` strings / weekdays (pick Custom and edit YAML) |
+
+Saving Setup or Timelapse archive settings rewrites `cameras/<id>/camera.yaml` (comments dropped; other keys kept). Pull from the Pi before `sync-to-pi.sh --delete` if you edited on the device.
 
 Open LAN UI work items: [TODO.md](../TODO.md).
 

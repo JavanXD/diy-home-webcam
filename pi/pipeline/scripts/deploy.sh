@@ -32,10 +32,18 @@ ssh "${SSH_OPTS[@]}" "$TARGET" "mkdir -p '$REMOTE_ROOT/.deploy-backup' && \
 rsync -az --delete -e "$RSYNC_SSH" \
   --exclude '.venv' --exclude 'data' --exclude '__pycache__' --exclude '.pytest_cache' \
   "$REPO_ROOT/pi/pipeline/" "$TARGET:$REMOTE_ROOT/pi/pipeline/"
-# cameras/ is owned by webcam after deploy so the Variants UI can write YAML.
-# Hand it to the SSH user for this copy, then chown it back below.
-ssh "${SSH_OPTS[@]}" "$TARGET" "sudo chown -R ${TARGET%%@*}:webcam '$REMOTE_ROOT/cameras'"
-rsync -az --delete -e "$RSYNC_SSH" "$REPO_ROOT/cameras/" "$TARGET:$REMOTE_ROOT/cameras/"
+# DIY ships real camera dirs under cameras/ (no private/ overlay). Sync those
+# directories only — never copy dangling Mac-side symlinks into the Pi tree.
+ssh "${SSH_OPTS[@]}" "$TARGET" "sudo chown -R ${TARGET%%@*}:webcam '$REMOTE_ROOT/cameras' 2>/dev/null || true; \
+  sudo mkdir -p '$REMOTE_ROOT/cameras'; \
+  sudo chown ${TARGET%%@*}:webcam '$REMOTE_ROOT/cameras'"
+rsync -az -e "$RSYNC_SSH" "$REPO_ROOT/cameras/README.md" "$TARGET:$REMOTE_ROOT/cameras/" 2>/dev/null || true
+for cam in "$REPO_ROOT/cameras"/*/; do
+  [[ -d "$cam" ]] || continue
+  [[ -L "${cam%/}" ]] && continue
+  name="$(basename "$cam")"
+  rsync -az --delete -e "$RSYNC_SSH" "$cam" "$TARGET:$REMOTE_ROOT/cameras/$name/"
+done
 rsync -az -e "$RSYNC_SSH" "$REPO_ROOT/shared/" "$TARGET:$REMOTE_ROOT/shared/"
 
 ssh "${SSH_OPTS[@]}" "$TARGET" "bash -s" <<EOF

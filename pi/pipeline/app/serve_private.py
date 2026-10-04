@@ -2280,13 +2280,30 @@ def make_handler(
                 raise TimelapseError(str(exc)) from exc
             return archive_for(repo_root, camera_id, profile)
 
+        def _timelapse_settings_from_profile(self, profile: Any) -> dict[str, Any]:
+            cfg = getattr(profile, "timelapse", None) or {}
+            max_gb = cfg.get("max_gb")
+            if max_gb is None and cfg.get("max_bytes") is not None:
+                max_gb = round(float(cfg["max_bytes"]) / 1024**3, 3)
+            if max_gb is None:
+                from .timelapse import DEFAULT_MAX_GB as _default_gb
+
+                max_gb = _default_gb
+            return {
+                "enabled": bool(cfg.get("enabled", True)),
+                "max_gb": float(max_gb),
+                "retention_days": int(cfg.get("retention_days") or 400),
+                "min_interval_seconds": int(cfg.get("min_interval_seconds") or 120),
+            }
+
         def _timelapse_get(self, parsed) -> None:
             cam = self._camera_from_qs(parsed)
             parts = [part for part in parsed.path.split("/") if part]
             qs = parse_qs(parsed.query)
             # ["timelapse"] or ["timelapse", day] or ["timelapse", day, thumb|mp4|gif]
             try:
-                archive = self._timelapse_archive(cam)
+                profile = load_camera_profile(repo_root, cam)
+                archive = archive_for(repo_root, cam, profile)
                 if len(parts) == 1:
                     self._json(
                         200,
@@ -2294,6 +2311,7 @@ def make_handler(
                             "camera": cam,
                             "days": archive.list_days(),
                             "storage": archive.storage_info(),
+                            "settings": self._timelapse_settings_from_profile(profile),
                             "local_only": True,
                         },
                     )
@@ -2328,7 +2346,7 @@ def make_handler(
                     )
                     return
                 self._json(404, {"error": "not found"})
-            except TimelapseError as exc:
+            except (TimelapseError, FileNotFoundError, ValueError) as exc:
                 self._json(400, {"error": str(exc)})
 
         def _send_ranged(
@@ -2707,6 +2725,30 @@ def make_handler(
                     self._json(400, {"error": str(exc)})
                 except ValueError as exc:
                     self._json(400, {"error": str(exc)})
+                return
+
+            if path == "/timelapse/settings":
+                try:
+                    body = self._read_json_body(length) if length else {}
+                    saved = save_site(repo_root, cam, body)
+                    self._json(
+                        200,
+                        {
+                            "ok": True,
+                            "camera": cam,
+                            "settings": {
+                                "enabled": saved["timelapse_enabled"],
+                                "max_gb": saved["timelapse_max_gb"],
+                                "retention_days": saved["timelapse_retention_days"],
+                                "min_interval_seconds": saved[
+                                    "timelapse_min_interval_seconds"
+                                ],
+                            },
+                        },
+                    )
+                except ValueError as exc:
+                    code = 413 if "too large" in str(exc) else 400
+                    self._json(code, {"error": str(exc)})
                 return
 
             if path == "/schedule/placeholder":

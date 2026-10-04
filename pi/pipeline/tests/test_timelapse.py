@@ -11,6 +11,7 @@ from http.server import ThreadingHTTPServer
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import yaml
 from PIL import Image
 
 REPO = Path(__file__).resolve().parents[3]
@@ -128,8 +129,14 @@ def test_timelapse_page_lists_a_day_and_does_not_upload(tmp_path: Path):
         assert "Download GIF" in html
         assert "tl-storage" in html
         assert "tl-meter-fill" in html
-        assert "timelapse.max_gb" in html
+        assert "tl-max-gb" in html
+        assert "Save archive settings" in html
+        assert "camera.yaml" in html and "timelapse" in html
         assert "Storage on this Pi" in html
+        assert "History" in html
+        assert "tl-day-list" in html
+        assert "tl-day-row" in html
+        assert "Newest first" in html
         # Storage + export tip on archive card; day card has actions only.
         assert html.index("tl-storage") < html.index("id=\"tl-meta\"")
         assert html.index("Neither file is uploaded") < html.index("id=\"tl-meta\"")
@@ -142,6 +149,32 @@ def test_timelapse_page_lists_a_day_and_does_not_upload(tmp_path: Path):
         assert payload["storage"]["max_bytes"] == 40 * 1024**3
         assert payload["storage"]["used_bytes"] > 0
         assert "used_pct" in payload["storage"]
+        assert payload["settings"]["enabled"] is True
+        assert payload["settings"]["max_gb"] == 40
+        assert payload["settings"]["min_interval_seconds"] == 120
+        body = json.dumps(
+            {
+                "timelapse_enabled": True,
+                "timelapse_max_gb": 12,
+                "timelapse_retention_days": 90,
+                "timelapse_min_interval_seconds": 180,
+            }
+        ).encode()
+        req_set = urllib.request.Request(
+            f"http://127.0.0.1:{port}/timelapse/settings?camera=shed",
+            data=body,
+            method="POST",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req_set) as resp:
+            saved = json.loads(resp.read().decode())
+        assert saved["ok"] is True
+        assert saved["settings"]["max_gb"] == 12
+        assert saved["settings"]["retention_days"] == 90
+        assert saved["settings"]["min_interval_seconds"] == 180
+        disk = yaml.safe_load((cam / "camera.yaml").read_text(encoding="utf-8"))
+        assert disk["timelapse"]["max_gb"] == 12
+        assert disk["timelapse"]["retention_days"] == 90
         req = urllib.request.Request(
             f"http://127.0.0.1:{port}/timelapse/2026-10-01/gif?camera=shed&download=1"
         )

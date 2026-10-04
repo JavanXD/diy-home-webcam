@@ -1,6 +1,6 @@
 """Project settings stored in ``cameras/<id>/camera.yaml``.
 
-The Setup page reads and writes this file. Wi-Fi passwords are not part of it.
+The Setup and Timelapse pages read and write this file. Wi-Fi passwords are not part of it.
 """
 
 from __future__ import annotations
@@ -14,9 +14,12 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import yaml
 
+from shared.brand_overlay import StatusCopy
+
 _MAX_NAME = 80
 _MAX_URL = 500
 _CAMERA_ID = re.compile(r"^[a-z][a-z0-9-]{0,40}$")
+_STATUS_LANGS = frozenset({"english", "german", "custom"})
 
 
 def camera_yaml_path(repo_root: Path, camera_id: str) -> Path:
@@ -30,6 +33,7 @@ def read_site(repo_root: Path, camera_id: str) -> dict[str, Any]:
     raw = _load(path)
     loc = raw.get("location") if isinstance(raw.get("location"), dict) else {}
     wx = raw.get("weather") if isinstance(raw.get("weather"), dict) else {}
+    tl = raw.get("timelapse") if isinstance(raw.get("timelapse"), dict) else {}
     return {
         "camera_id": camera_id,
         "yaml_path": f"cameras/{camera_id}/camera.yaml",
@@ -44,6 +48,12 @@ def read_site(repo_root: Path, camera_id: str) -> dict[str, Any]:
         if isinstance(raw.get("publish"), dict)
         else "",
         "site_label": _site_label_from_variants(repo_root, camera_id),
+        "poll_interval_seconds": int(raw.get("poll_interval_seconds") or 60),
+        "status_language": _detect_status_language(raw.get("status_text")),
+        "timelapse_enabled": bool(tl.get("enabled", True)) if tl else True,
+        "timelapse_max_gb": float(tl.get("max_gb") if tl.get("max_gb") is not None else 40),
+        "timelapse_retention_days": int(tl.get("retention_days") or 400),
+        "timelapse_min_interval_seconds": int(tl.get("min_interval_seconds") or 120),
     }
 
 
@@ -129,6 +139,97 @@ def _apply(raw: dict[str, Any], patch: dict[str, Any], repo_root: Path, camera_i
         _set_variant_live_keys(repo_root, camera_id, key)
     if "site_label" in patch:
         _set_site_label(repo_root, camera_id, _site_label(patch.get("site_label")))
+    if "poll_interval_seconds" in patch:
+        raw["poll_interval_seconds"] = _int_range(
+            patch.get("poll_interval_seconds"), "poll interval", 15, 600
+        )
+    if "status_language" in patch:
+        _apply_status_language(raw, patch.get("status_language"))
+    if any(
+        k in patch
+        for k in (
+            "timelapse_enabled",
+            "timelapse_max_gb",
+            "timelapse_retention_days",
+            "timelapse_min_interval_seconds",
+        )
+    ):
+        _apply_timelapse(raw, patch)
+
+
+def _detect_status_language(raw: Any) -> str:
+    """english (default / omit block), german (known preset), or custom (YAML escape hatch)."""
+    if not isinstance(raw, dict) or not raw:
+        return "english"
+    de = StatusCopy.german()
+    en = StatusCopy.english()
+    title = str(raw.get("night_title") or "").strip()
+    maint = str(raw.get("maintenance_title") or "").strip()
+    if title == de.night_title or maint == de.maintenance_title:
+        # Exact German preset (or close enough on primary titles).
+        if (
+            title in {"", de.night_title}
+            and maint in {"", de.maintenance_title}
+            and str(raw.get("back_at_label") or "").strip() in {"", de.back_at_label}
+        ):
+            return "german"
+        return "custom"
+    if title in {"", en.night_title} and maint in {"", en.maintenance_title}:
+        return "english"
+    return "custom"
+
+
+def _status_copy_as_dict(copy: StatusCopy) -> dict[str, Any]:
+    return {
+        "maintenance_title": copy.maintenance_title,
+        "maintenance_body": copy.maintenance_body,
+        "night_title": copy.night_title,
+        "night_body": copy.night_body,
+        "back_at_label": copy.back_at_label,
+        "today": copy.today,
+        "tomorrow": copy.tomorrow,
+        "weekdays": list(copy.weekdays),
+    }
+
+
+def _apply_status_language(raw: dict[str, Any], value: Any) -> None:
+    lang = str(value or "").strip().lower()
+    if lang not in _STATUS_LANGS:
+        raise ValueError("status language must be english, german, or custom")
+    if lang == "custom":
+        # Keep whatever is already in YAML; UI must not wipe a custom block.
+        return
+    if lang == "english":
+        raw.pop("status_text", None)
+        return
+    raw["status_text"] = _status_copy_as_dict(StatusCopy.german())
+
+
+def _apply_timelapse(raw: dict[str, Any], patch: dict[str, Any]) -> None:
+    tl = dict(raw.get("timelapse") or {})
+    if "timelapse_enabled" in patch:
+        tl["enabled"] = bool(patch.get("timelapse_enabled"))
+    if "timelapse_max_gb" in patch:
+        try:
+            gb = float(patch.get("timelapse_max_gb"))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("timelapse budget must be a number of gigabytes") from exc
+        if gb < 1 or gb > 2000:
+            raise ValueError("timelapse budget must be between 1 and 2000 GB")
+        tl["max_gb"] = round(gb, 3)
+        tl.pop("max_bytes", None)
+    if "timelapse_retention_days" in patch:
+        tl["retention_days"] = _int_range(
+            patch.get("timelapse_retention_days"), "timelapse retention", 7, 5000
+        )
+    if "timelapse_min_interval_seconds" in patch:
+        tl["min_interval_seconds"] = _int_range(
+            patch.get("timelapse_min_interval_seconds"),
+            "timelapse frame interval",
+            30,
+            3600,
+        )
+    raw["timelapse"] = tl
 
 
 def _coord(value: Any, label: str, lo: float, hi: float) -> float:
