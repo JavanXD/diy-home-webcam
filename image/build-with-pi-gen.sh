@@ -20,6 +20,18 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
+# pi-gen build-docker.sh requires host qemu-aarch64-static when cross-building on x86_64.
+case "$(uname -m)" in
+  x86_64|amd64)
+    if ! command -v qemu-aarch64-static >/dev/null 2>&1; then
+      echo "==> installing qemu-user-static (arm64 binfmt on x86_64 host)"
+      apt-get update -qq
+      DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        qemu-user-static binfmt-support
+    fi
+    ;;
+esac
+
 echo "==> pi-gen worktree: $WORK"
 if [[ ! -d "$WORK/.git" ]]; then
   rm -rf "$WORK"
