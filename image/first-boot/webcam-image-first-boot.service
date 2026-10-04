@@ -1,0 +1,15 @@
+[Unit]
+Description=Home webcam pipeline first-boot provision (DIY image)
+Documentation=file:///opt/home-webcam-pipeline/docs/diy/BUILD.md
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+ConditionPathExists=!/var/lib/webcam-pipeline/image-first-boot.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/webcam-image-first-boot.sh
+RemainAfterExit=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

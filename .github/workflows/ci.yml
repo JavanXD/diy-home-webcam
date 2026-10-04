@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    paths:
+      - "pi/**"
+      - "scripts/**"
+      - "cameras/**"
+      - "shared/**"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "pi/**"
+      - "scripts/**"
+      - "cameras/**"
+      - "shared/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  camera:
+    name: Pi camera tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install and test
+        working-directory: pi/camera
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q -r requirements.txt pytest pillow
+          .venv/bin/pytest -q
+
+  pipeline:
+    name: Pi pipeline + timelapse
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pipeline tests
+        working-directory: pi/pipeline
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install -q -r requirements.txt pytest pillow
+          .venv/bin/pytest -q
+      - name: Timelapse script smoke
+        run: |
+          python -m pip install -q pillow
+          mkdir -p /tmp/tl-in /tmp/tl-out
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image
+          d = Path("/tmp/tl-in")
+          for i in range(3):
+              Image.new("RGB", (64, 48), (i * 40, 80, 120)).save(d / f"{i:02d}.jpg", quality=80)
+          PY
+          python scripts/make-timelapse.py -i /tmp/tl-in -o /tmp/tl-out/t.gif --delay-ms 100
+          test -s /tmp/tl-out/t.gif

@@ -1,0 +1,71 @@
+name: wide
+visibility: public
+description: >-
+  Sky-first wide composition (top-aligned). Tune crop/masks on a real frame.
+  Not uploaded unless publish is true.
+
+crop:
+  mode: arbitrary
+  left: 0.0
+  top: 0.0
+  right: 1.0
+  bottom: 0.60
+  aspect_ratio: "16:9"
+
+output:
+  width: 1600
+  height: 900
+  jpeg_quality: 78
+  filename: wide.jpg
+  r2_live_key: null
+  r2_history_variant: wide
+
+publish: false
+
+privacy:
+  # After a sky-first crop, only bottom-edge peeks usually need masks.
+  masks:
+    - type: rect
+      label: mid facade peek
+      left: 0.45
+      top: 0.82
+      right: 0.62
+      bottom: 1.0
+      mode: pixelate
+      strength: 24
+    - type: rect
+      label: church-base windows
+      left: 0.62
+      top: 0.82
+      right: 0.86
+      bottom: 1.0
+      mode: pixelate
+      strength: 24
+    - type: rect
+      label: BR curtains window
+      left: 0.93
+      top: 0.80
+      right: 1.0
+      bottom: 1.0
+      mode: pixelate
+      strength: 24
+
+watermark:
+  enabled: false
+
+site_badge:
+  enabled: true
+  site: example.com
+  temperature: false
+  font_size: 26
+  stroke_width: 2
+  margin: 28
+
+timestamp:
+  enabled: true
+  position: bottom-left
+  format: "%Y-%m-%d %H:%M"
+  opacity: 0.85
+  font_size: 24
+  stroke_width: 2
+  margin: 28

@@ -1,0 +1,27 @@
+[Unit]
+Description=Home webcam image pipeline (variants + R2 publish)
+After=network-online.target webcam-camera.service
+Wants=network-online.target webcam-camera.service
+
+[Service]
+Type=simple
+User=webcam
+Group=webcam
+WorkingDirectory=/opt/home-webcam-pipeline/pi/pipeline
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-/etc/webcam-pipeline/env
+ExecStart=/opt/home-webcam-pipeline/pi/pipeline/.venv/bin/python -m app.main --config /etc/webcam-pipeline/pipeline.yaml
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+# cameras/ — Variants LAN editor atomic-writes cameras/<id>/variants/*.yaml
+# /etc/webcam-pipeline — Setup writes env (R2 keys) and may update pipeline.yaml camera list
+ReadWritePaths=/opt/home-webcam-pipeline/data /opt/home-webcam-pipeline/pi/pipeline/data /opt/home-webcam-pipeline/cameras /var/lib/webcam-pipeline /etc/webcam-pipeline
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

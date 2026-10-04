@@ -1,0 +1,60 @@
+name: Prune R2 history
+
+# Weekly retention for history/*. Skips cleanly until R2 S3 secrets are set.
+on:
+  schedule:
+    - cron: "17 4 * * 1" # Mondays 04:17 UTC
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Delete history objects older than N days"
+        required: false
+        default: "90"
+      dry_run:
+        description: "If true, only list deletes"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: prune-r2-history
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Prune history/
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install boto3
+        run: python -m pip install -q boto3
+
+      - name: Prune R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ENDPOINT_URL: ${{ secrets.AWS_ENDPOINT_URL }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          DAYS: ${{ github.event.inputs.days || '90' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${AWS_ACCESS_KEY_ID:-}" || -z "${AWS_SECRET_ACCESS_KEY:-}" || -z "${AWS_ENDPOINT_URL:-}" || -z "${R2_BUCKET:-}" ]]; then
+            echo "R2 S3 secrets not set — skipping prune."
+            echo "Add AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_ENDPOINT_URL, R2_BUCKET"
+            echo "(from ~/Projects/.secrets/schellbronn-webcam-r2.env once R2 is enabled)."
+            exit 0
+          fi
+          args=(--r2 --prefix history/ --days "${DAYS}")
+          if [[ "${DRY_RUN}" == "true" ]]; then
+            args+=(--dry-run)
+          fi
+          python scripts/prune-history.py "${args[@]}"

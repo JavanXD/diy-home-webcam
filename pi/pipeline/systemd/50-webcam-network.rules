@@ -1,0 +1,17 @@
+// Let the webcam service join Wi-Fi from the LAN Setup page.
+// Install: sudo cp this file to /etc/polkit-1/rules.d/ (provision and deploy do that).
+polkit.addRule(function(action, subject) {
+  if (subject.user !== "webcam") {
+    return null;
+  }
+  var id = action.id || "";
+  if (
+    id === "org.freedesktop.NetworkManager.wifi.scan" ||
+    id === "org.freedesktop.NetworkManager.network-control" ||
+    id === "org.freedesktop.NetworkManager.settings.modify.system" ||
+    id === "org.freedesktop.NetworkManager.settings.modify.own"
+  ) {
+    return polkit.Result.YES;
+  }
+  return null;
+});

@@ -1,0 +1,339 @@
+"""LAN Setup page: project YAML + Wi-Fi join. Password is not stored."""
+
+from __future__ import annotations
+
+from shared import lan_ui
+
+
+def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
+    site = """
+  <p class="field-help">Saved into <code>cameras/&lt;id&gt;/camera.yaml</code>. Saving rewrites that file (comments are dropped; other keys are kept).</p>
+  <label for="cameraPick">Camera</label>
+  <select id="cameraPick"></select>
+  <label for="displayName">Display name</label>
+  <input id="displayName" type="text" maxlength="80" autocomplete="off">
+  <p class="field-help">Public JPEG overlay and LAN label (e.g. Home Assistant). Example: Example Webcam.</p>
+  <label for="timezone">Timezone</label>
+  <input id="timezone" type="text" autocomplete="off" placeholder="Europe/Berlin">
+  <div class="row">
+    <div>
+      <label for="lat">Latitude</label>
+      <input id="lat" type="number" step="0.0001" inputmode="decimal" autocomplete="off">
+    </div>
+    <div>
+      <label for="lon">Longitude</label>
+      <input id="lon" type="number" step="0.0001" inputmode="decimal" autocomplete="off">
+    </div>
+  </div>
+  <p class="field-help">Latitude, longitude, and timezone for the public schedule. Schedule only edits the online window offsets.</p>
+  <label for="siteLabel">Site label</label>
+  <input id="siteLabel" type="text" maxlength="80" autocomplete="off" placeholder="example.com">
+  <p class="field-help">Text drawn in the corner of public JPEGs. Saved on each public variant.</p>
+  <label for="liveKey">Public JPEG key</label>
+  <input id="liveKey" type="text" maxlength="120" autocomplete="off" placeholder="live/example-live-webcam.jpg">
+  <p class="field-help">R2 object name. The public website must use this same path. Switching the live crop does not rename it.</p>
+  <label for="weatherUrl">Weather URL</label>
+  <input id="weatherUrl" type="url" inputmode="url" autocomplete="off" placeholder="https://example.com/api/weather">
+  <p class="field-help">JSON with <code>current.temp_c</code>. Leave empty to skip temperature on the public JPEG.</p>
+  <div class="row">
+    <div>
+      <label for="weatherTtl">Cache seconds</label>
+      <input id="weatherTtl" type="number" min="30" max="86400" step="1" inputmode="numeric">
+    </div>
+    <div>
+      <label for="weatherTimeout">Request timeout (seconds)</label>
+      <input id="weatherTimeout" type="number" min="1" max="30" step="1" inputmode="numeric">
+    </div>
+  </div>
+"""
+    create = """
+  <p class="field-help">Copies <code>examples/cameras/example</code> and adds the id to the pipeline camera list. The existing camera stays.</p>
+  <div class="row">
+    <div>
+      <label for="newId">Camera id</label>
+      <input id="newId" type="text" maxlength="41" autocomplete="off" placeholder="shed">
+    </div>
+    <div>
+      <label for="newDisplay">Display name</label>
+      <input id="newDisplay" type="text" maxlength="80" autocomplete="off" placeholder="Shed webcam">
+    </div>
+  </div>
+  <div class="actions">
+    <button type="button" id="createCam" class="primary">Create camera</button>
+  </div>
+"""
+    publish = """
+  <p class="field-help">Keys are written to <code>/etc/webcam-pipeline/env</code> on this Pi (not into git). Leave the secret blank to keep the current one. Restart the pipeline service before the next upload uses a new key.</p>
+  <label class="inline"><input type="checkbox" id="publishEnabled"> Publish the public JPEG</label>
+  <label for="bucket">Bucket</label>
+  <input id="bucket" type="text" maxlength="80" autocomplete="off">
+  <label for="endpoint">Endpoint URL</label>
+  <input id="endpoint" type="url" inputmode="url" autocomplete="off" placeholder="https://ACCOUNT.r2.cloudflarestorage.com">
+  <label for="accessKey">Access key id</label>
+  <input id="accessKey" type="text" autocomplete="off">
+  <label for="secretKey">Secret access key</label>
+  <input id="secretKey" type="password" autocomplete="new-password">
+  <p class="muted" id="publishHint"></p>
+  <div class="actions">
+    <button type="button" id="savePublish" class="primary">Save publish settings</button>
+  </div>
+"""
+    wifi = """
+  <div id="wifi-now" class="status-box" role="status">Loading Wi-Fi…</div>
+  <div id="ap-help" class="field-help" hidden>
+    You are on the temporary <strong>Webcam-Setup</strong> access point.
+    Scan, pick your home Wi-Fi, enter its password, then tap <strong>Join Wi-Fi</strong>.
+    The Pi leaves Webcam-Setup and joins home; your phone must switch back to home Wi-Fi afterward.
+    Temporary AP password (printed in the DIY build doc): <code>webcam-setup</code>.
+  </div>
+  <p class="field-help">The password is sent once to NetworkManager and is not written into this project. Joining a different network can drop this page.</p>
+  <div class="actions">
+    <button type="button" id="scan" class="ghost">Scan networks</button>
+  </div>
+  <label for="ssid">Network</label>
+  <select id="ssid"></select>
+  <label for="psk">Password</label>
+  <input id="psk" type="password" autocomplete="new-password">
+  <p class="field-help">Leave the password empty for an open network. DHCP stays on; set a fixed address on the router if you want one.</p>
+"""
+    body = f"""
+  {lan_ui.page_header("Setup", "Name, place, weather feed, and Wi-Fi for this Pi. Home network only.", kicker=":8090 · site · network")}
+  {lan_ui.banner_slot("msg")}
+  {lan_ui.card("Project", site, kind="pipe")}
+  {lan_ui.card("New camera", create, kind="pipe")}
+  {lan_ui.card("Publish", publish, kind="pipe")}
+  {lan_ui.card("Wi-Fi", wifi, kind="pipe")}
+  {lan_ui.actions_bar(
+      '<button type="button" id="save" class="primary">Save project</button>',
+      '<button type="button" id="connect" class="primary">Join Wi-Fi</button>',
+      sticky=True,
+  )}
+<script>
+(function () {{
+  var cam = "";
+
+  function val(id) {{ return document.getElementById(id).value; }}
+  function set(id, v) {{
+    var el = document.getElementById(id);
+    if (el && v != null) el.value = v;
+  }}
+
+  async function loadSite() {{
+    var site = await window.lanUi.fetchJson("/setup?camera=" + encodeURIComponent(cam));
+    set("displayName", site.display_name || "");
+    set("timezone", site.timezone || "");
+    set("lat", site.latitude != null ? site.latitude : "");
+    set("lon", site.longitude != null ? site.longitude : "");
+    set("weatherUrl", site.weather_url || "");
+    set("weatherTtl", site.weather_ttl_seconds != null ? site.weather_ttl_seconds : 300);
+    set("weatherTimeout", site.weather_timeout_seconds != null ? site.weather_timeout_seconds : 4);
+    set("siteLabel", site.site_label || "");
+    set("liveKey", site.public_live_key || "");
+  }}
+
+  function fillCameras(ids, current) {{
+    var sel = document.getElementById("cameraPick");
+    sel.innerHTML = "";
+    (ids || []).forEach(function (id) {{
+      var opt = document.createElement("option");
+      opt.value = id;
+      opt.textContent = id;
+      sel.appendChild(opt);
+    }});
+    if (current) sel.value = current;
+  }}
+
+  function fillWifi(status) {{
+    var box = document.getElementById("wifi-now");
+    var apHelp = document.getElementById("ap-help");
+    if (!status || status.available === false) {{
+      window.lanUi.banner(box, "warn", "Wi-Fi unavailable", (status && status.message) || "");
+      if (apHelp) apHelp.hidden = true;
+      return;
+    }}
+    if (apHelp) apHelp.hidden = !status.setup_ap;
+    if (status.setup_ap) {{
+      var apDetail = [
+        "temporary setup AP",
+        status.setup_ap_url || ("http://" + (status.setup_ap_gateway || "10.42.0.1") + ":8090/setup/ui"),
+        status.device
+      ].filter(Boolean).join(" · ");
+      window.lanUi.banner(box, "warn", status.setup_ap_ssid || "Webcam-Setup", apDetail);
+      return;
+    }}
+    var ssid = status.ssid || "not connected";
+    var detail = [status.device, status.ipv4, status.state].filter(Boolean).join(" · ");
+    window.lanUi.banner(box, status.ssid ? "ok" : "warn", ssid, detail);
+  }}
+
+  function fillNetworks(list, current) {{
+    var sel = document.getElementById("ssid");
+    var names = (list && list.networks) || [];
+    sel.innerHTML = "";
+    names.forEach(function (n) {{
+      var opt = document.createElement("option");
+      opt.value = n.ssid;
+      var mark = n.in_use ? " · connected" : "";
+      opt.textContent = n.ssid + " (" + (n.signal || 0) + "%)" + mark;
+      sel.appendChild(opt);
+    }});
+    if (current && current.ssid) sel.value = current.ssid;
+  }}
+
+  async function loadWifi() {{
+    var status = await window.lanUi.fetchJson("/setup/wifi");
+    fillWifi(status);
+    return status;
+  }}
+
+  document.getElementById("save").addEventListener("click", async function () {{
+    var btn = document.getElementById("save");
+    window.lanUi.setBusy(btn, true, "Saving…");
+    try {{
+      await window.lanUi.fetchJson("/setup?camera=" + encodeURIComponent(cam), {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{
+          display_name: val("displayName"),
+          timezone: val("timezone"),
+          latitude: val("lat"),
+          longitude: val("lon"),
+          weather_url: val("weatherUrl"),
+          weather_ttl_seconds: Number(val("weatherTtl")),
+          weather_timeout_seconds: Number(val("weatherTimeout")),
+          site_label: val("siteLabel"),
+          public_live_key: val("liveKey")
+        }})
+      }});
+      window.lanUi.showBanner("msg", "info", "Saved", "camera.yaml updated");
+    }} catch (e) {{
+      window.lanUi.showBanner("msg", "bad", "Save failed", e && e.message ? e.message : String(e));
+    }} finally {{
+      window.lanUi.setBusy(btn, false);
+    }}
+  }});
+
+  document.getElementById("scan").addEventListener("click", async function () {{
+    var btn = document.getElementById("scan");
+    window.lanUi.setBusy(btn, true, "Scanning…");
+    try {{
+      var status = await loadWifi();
+      var list = await window.lanUi.fetchJson("/setup/wifi/scan");
+      fillNetworks(list, status);
+      window.lanUi.showBanner("msg", "info", "Scan finished", (list.networks || []).length + " networks");
+    }} catch (e) {{
+      window.lanUi.showBanner("msg", "bad", "Scan failed", e && e.message ? e.message : String(e));
+    }} finally {{
+      window.lanUi.setBusy(btn, false);
+    }}
+  }});
+
+  document.getElementById("connect").addEventListener("click", async function () {{
+    var ssid = val("ssid");
+    if (!ssid) {{
+      window.lanUi.showBanner("msg", "warn", "No network", "Scan, then pick a network.");
+      return;
+    }}
+    if (!window.lanUi.confirm("Join “" + ssid + "”? This Pi may leave the current Wi-Fi.")) return;
+    var btn = document.getElementById("connect");
+    window.lanUi.setBusy(btn, true, "Joining…");
+    try {{
+      var res = await window.lanUi.fetchJson("/setup/wifi", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ ssid: ssid, password: val("psk") }})
+      }});
+      document.getElementById("psk").value = "";
+      var joinedDetail = (res.ipv4 || "") + (res.message ? " — " + res.message : "");
+      window.lanUi.showBanner("msg", "info", "Joined " + (res.ssid || ssid), joinedDetail.trim());
+      await loadWifi();
+    }} catch (e) {{
+      window.lanUi.showBanner("msg", "bad", "Could not join", e && e.message ? e.message : String(e));
+    }} finally {{
+      window.lanUi.setBusy(btn, false);
+    }}
+  }});
+
+  document.getElementById("cameraPick").addEventListener("change", async function () {{
+    cam = document.getElementById("cameraPick").value || "";
+    try {{ await loadSite(); }}
+    catch (e) {{
+      window.lanUi.showBanner("msg", "bad", "Could not load camera", e && e.message ? e.message : String(e));
+    }}
+  }});
+
+  document.getElementById("createCam").addEventListener("click", async function () {{
+    var btn = document.getElementById("createCam");
+    window.lanUi.setBusy(btn, true, "Creating…");
+    try {{
+      var created = await window.lanUi.fetchJson("/setup/cameras", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ id: val("newId"), display_name: val("newDisplay") }})
+      }});
+      cam = created.camera_id;
+      var health = await window.lanUi.fetchJson("/health");
+      fillCameras((health && health.configured_cameras) || [cam], cam);
+      await loadSite();
+      window.lanUi.showBanner("msg", "ok", "Camera created", cam);
+    }} catch (e) {{
+      window.lanUi.showBanner("msg", "bad", "Create failed", e && e.message ? e.message : String(e));
+    }} finally {{
+      window.lanUi.setBusy(btn, false);
+    }}
+  }});
+
+  async function loadPublish() {{
+    var pub = await window.lanUi.fetchJson("/setup/publish");
+    document.getElementById("publishEnabled").checked = !!pub.enabled;
+    set("bucket", pub.bucket || "");
+    set("endpoint", pub.endpoint_url || "");
+    var hint = [];
+    if (pub.access_key_set) hint.push("access key is set");
+    if (pub.secret_set) hint.push("secret is set");
+    if (pub.restart_required) hint.push("restart the pipeline after a new key");
+    document.getElementById("publishHint").textContent = hint.join(" · ");
+  }}
+
+  document.getElementById("savePublish").addEventListener("click", async function () {{
+    var btn = document.getElementById("savePublish");
+    window.lanUi.setBusy(btn, true, "Saving…");
+    try {{
+      await window.lanUi.fetchJson("/setup/publish", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{
+          enabled: document.getElementById("publishEnabled").checked,
+          bucket: val("bucket"),
+          endpoint_url: val("endpoint"),
+          access_key_id: val("accessKey"),
+          secret_access_key: val("secretKey")
+        }})
+      }});
+      document.getElementById("secretKey").value = "";
+      document.getElementById("accessKey").value = "";
+      await loadPublish();
+      window.lanUi.showBanner("msg", "ok", "Publish settings saved", "Restart the pipeline service before the next upload.");
+    }} catch (e) {{
+      window.lanUi.showBanner("msg", "bad", "Publish save failed", e && e.message ? e.message : String(e));
+    }} finally {{
+      window.lanUi.setBusy(btn, false);
+    }}
+  }});
+
+  window.lanUi.resolveCamera().then(async function (id) {{
+    cam = id || "";
+    try {{
+      var health = await window.lanUi.fetchJson("/health");
+      fillCameras((health && health.configured_cameras) || (cam ? [cam] : []), cam);
+      if (cam) await loadSite();
+      await loadPublish();
+      await loadWifi();
+    }} catch (e) {{
+      window.lanUi.showBanner("msg", "bad", "Could not load setup", e && e.message ? e.message : String(e));
+    }}
+  }});
+}})();
+</script>
+"""
+    return lan_ui.page("Setup", body, active="setup", pipe_more=pipe_more)

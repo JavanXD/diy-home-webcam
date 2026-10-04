@@ -1,0 +1,79 @@
+# Build a flashable Raspberry Pi OS Lite image (pi-gen) with this repo + setup AP.
+# Manual dispatch preferred — full builds are long and use significant Actions minutes.
+name: Build Pi image
+
+on:
+  workflow_dispatch:
+    inputs:
+      compress:
+        description: "Compress output with xz"
+        type: boolean
+        default: true
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-pi-image
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: pi-gen Lite image
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc || true
+          sudo apt-get clean
+          df -h
+
+      - name: Cache pi-gen work
+        uses: actions/cache@v4
+        with:
+          path: image/pi-gen/work
+          key: pigen-work-${{ runner.os }}-${{ hashFiles('image/config', 'image/stage-webcam/**', 'pi/host/setup-ap.env') }}
+          restore-keys: |
+            pigen-work-${{ runner.os }}-
+
+      - name: Build image (pi-gen docker)
+        run: |
+          chmod +x image/build-with-pi-gen.sh image/stage-webcam/00-webcam/01-run.sh
+          chmod +x image/first-boot/webcam-image-first-boot.sh
+          ./image/build-with-pi-gen.sh
+
+      - name: Locate artifact
+        id: artifact
+        run: |
+          set -euo pipefail
+          img="$(find image/pi-gen/deploy -type f \( -name '*.img.xz' -o -name '*.img' \) | head -n1)"
+          if [[ -z "$img" ]]; then
+            echo "No image found under image/pi-gen/deploy" >&2
+            ls -laR image/pi-gen/deploy || true
+            exit 1
+          fi
+          echo "path=$img" >> "$GITHUB_OUTPUT"
+          echo "name=$(basename "$img")" >> "$GITHUB_OUTPUT"
+          ls -lh "$img"
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: home-webcam-pi-image
+          path: ${{ steps.artifact.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach image to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.artifact.outputs.path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

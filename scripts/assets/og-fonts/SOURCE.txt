@@ -1,0 +1,6 @@
+Open Font License variable fonts used by scripts/generate-og-image.py:
+
+- PlayfairDisplay-Variable.ttf — https://fonts.google.com/specimen/Playfair+Display
+- Inter-Variable.ttf — https://fonts.google.com/specimen/Inter
+
+Regenerate OG: python3 scripts/generate-og-image.py --source PATH_OR_URL

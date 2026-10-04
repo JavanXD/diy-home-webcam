@@ -1,0 +1,59 @@
+# Copy to cameras/<id>/camera.yaml and replace every "example" token.
+# Capture and pipeline on the same Pi: leave the source URL on localhost.
+
+id: example
+display_name: Example Webcam
+
+source:
+  url: http://127.0.0.1:8080/raw.jpg
+  health_url: http://127.0.0.1:8080/health
+  timeout_seconds: 8
+
+poll_interval_seconds: 60
+
+storage:
+  original_dir: data/example/original
+  variants_dir: data/example/variants
+  keep_original_history: 2
+
+publish:
+  enabled: false
+  # Fixed public object. Switching the live variant does not rename this key.
+  public_live_key: live/example-live-webcam.jpg
+  r2_prefix_live: live
+  r2_prefix_history: history/example
+  history:
+    # Off: only the current live JPEG is meant for the bucket.
+    enabled: false
+    min_interval_seconds: 300
+    retention_days: 90
+
+# Daylight frames for the LAN Timelapse page. Stored under data/<id>/timelapse/.
+timelapse:
+  enabled: true
+  min_interval_seconds: 120
+  retention_days: 400
+  # Size budget for frames + exports (change freely). Oldest days deleted when over limit.
+  # Default 40 GB leaves room on a ~500 GB NVMe. Use max_bytes instead if you prefer bytes.
+  max_gb: 40
+
+# Wall clock for timestamps and the public night schedule.
+timezone: UTC
+
+# Optional. JSON must expose current.temp_c (number). Omit the block for no temperature.
+# weather:
+#   url: https://example.com/api/weather
+#   ttl_seconds: 300
+#   timeout_seconds: 4
+
+# Public sunrise/sunset only. Private LAN-only variants stay live overnight.
+# A new schedule file copies these values (see pi/pipeline/app/schedule.py).
+location:
+  latitude: 0.0
+  longitude: 0.0
+
+# Night and maintenance wording. Leave this out for English
+# ("Offline at night", "Back at", "Maintenance").
+# Delete pi/camera/app/assets/maintenance-base.jpg and
+# pi/pipeline/app/assets/offline-base.jpg for a plain dark slide
+# instead of a photo. The Schedule page can still upload a night photo.

@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "example-webcam",
+  "main": "worker/src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "cache": {
+    "enabled": true,
+    "cross_version_cache": true
+  },
+  "routes": [
+    {
+      "pattern": "webcam.example.com",
+      "custom_domain": true
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "WEBCAM_BUCKET",
+      "bucket_name": "example-webcam"
+    }
+  ],
+  "assets": {
+    "directory": "./site",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

@@ -1,0 +1,28 @@
+name: private
+visibility: private
+description: Full private view for the home network only (e.g. Home Assistant). No privacy masks, no public badge.
+
+crop:
+  mode: full
+  aspect_ratio: "4:3"
+
+output:
+  width: 1920
+  height: 1440
+  jpeg_quality: 88
+  filename: private.jpg
+
+privacy:
+  masks: []
+
+watermark:
+  enabled: false
+
+timestamp:
+  enabled: true
+  position: bottom-left
+  format: "%Y-%m-%d %H:%M"
+  opacity: 0.85
+  font_size: 22
+  stroke_width: 2
+  margin: 28

@@ -1,0 +1,17 @@
+[Unit]
+Description=Captive redirect to webcam Setup UI (setup AP only)
+Documentation=file:///opt/home-webcam-pipeline/docs/diy/BUILD.md
+After=NetworkManager.service
+ConditionPathExists=!/etc/webcam-pipeline/setup-ap.disabled
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/webcam-setup-ap.env
+Environment=SETUP_AP_CAPTIVE_BIND=0.0.0.0
+Environment=SETUP_AP_CAPTIVE_PORT=80
+ExecStart=/usr/bin/python3 /opt/home-webcam-pipeline/pi/scripts/webcam-captive-redirect.py
+Restart=no
+
+[Install]
+# Started on demand by webcam-setup-ap.sh; not enabled at boot by itself.
+WantedBy=

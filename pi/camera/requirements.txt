@@ -1,0 +1,6 @@
+# Raspberry Pi camera appliance dependencies.
+# On Raspberry Pi OS with a real camera, also: sudo apt install python3-picamera2
+# (or pip install picamera2 when using a venv that can see libcamera).
+
+PyYAML>=6.0.1
+Pillow>=10.0.0

@@ -1,0 +1,27 @@
+name: Bug report
+description: Capture, pipeline, publish, or the LAN pages misbehave
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps
+      description: Commands, URLs, and the camera id. Leave out tokens, Wi-Fi passwords, and private images.
+      placeholder: |
+        1. sudo ./pi/provision.sh
+        2. curl -fsS http://127.0.0.1:8080/health
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Pi model, Raspberry Pi OS version, and whether a camera is attached.
+    validations:
+      required: false

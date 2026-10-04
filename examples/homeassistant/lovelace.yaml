@@ -1,0 +1,55 @@
+# Example Webcam — Lovelace
+#
+# Same tokens as webcam.yaml:
+#   webcam_example / Example Webcam
+# Paste the vertical-stack into a dashboard card, or append the view in the raw editor.
+
+title: Example Webcam
+path: example-webcam
+icon: mdi:cctv
+cards:
+  - type: vertical-stack
+    cards:
+      - type: picture-entity
+        entity: image.webcam_example_private
+        name: Example Webcam Private
+        show_state: false
+        show_name: true
+        tap_action:
+          action: more-info
+
+      - type: horizontal-stack
+        cards:
+          - type: tile
+            entity: binary_sensor.webcam_example_cam_ok
+            name: Cam OK
+            vertical: true
+          - type: tile
+            entity: binary_sensor.webcam_example_pipeline_ok
+            name: Pipeline OK
+            vertical: true
+          - type: tile
+            entity: binary_sensor.webcam_example_public_online
+            name: Public
+            vertical: true
+
+      - type: entities
+        show_header_toggle: false
+        entities:
+          - entity: switch.webcam_example_wartungsbild
+            name: Example Webcam Wartungsbild
+          - entity: binary_sensor.webcam_example_camera_attached
+            name: Camera attached
+          - entity: binary_sensor.webcam_example_cam_reachable
+            name: Cam API reachable
+          - entity: sensor.webcam_example_cam_health
+            name: Example Webcam Cam Health
+          - entity: sensor.webcam_example_pipeline_status
+            name: Example Webcam Pipeline Status
+          - entity: sensor.webcam_example_cam_image_age
+            name: Cam Image Age
+          - type: divider
+          - entity: input_button.webcam_example_refresh_capture
+            name: Example Webcam Pi capture
+          - entity: input_button.webcam_example_pipeline_refresh
+            name: Example Webcam pipeline refresh

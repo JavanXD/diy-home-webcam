@@ -1,0 +1,45 @@
+# Camera appliance (sensor + JPEG). Same file for any site; the camera id lives
+# under cameras/<id>/. Provision copies this once to /etc/webcam-camera/camera.yaml.
+# Copy to /etc/webcam-camera/camera.yaml (provision does this) or local camera.yaml.
+
+bind_host: "0.0.0.0"
+bind_port: 8080
+
+# picamera2 | rpicam
+capture_backend: picamera2
+
+storage:
+  image_path: data/image.jpg
+  keep_history: 0
+  history_dir: data/history
+
+capture:
+  # Full IMX477 still; pipeline downscales public variants
+  width: 4056
+  height: 3040
+  # Slightly lower quality = less LAN/R2 bandwidth for the same view
+  jpeg_quality: 88
+  # Align with pipeline poll (~60s); capturing faster only burns CPU/SD
+  interval_seconds: 30
+  timeout_seconds: 15
+  exposure_mode: auto
+  awb_mode: auto
+
+http:
+  capture_min_interval_seconds: 5
+  max_body_bytes: 65536
+
+# Temporary high-rate capture for aiming/focusing (Camera home Start/Stop).
+# Auto-offs after duration_seconds (~5 min); /raw.jpg only — Wartung/schedule unchanged.
+live_preview:
+  duration_seconds: 300
+  interval_seconds: 0.75
+
+logging:
+  level: INFO
+
+health:
+  # > 2× capture interval → DEGRADED
+  stale_after_seconds: 90
+  # Auto Wartungsbild after N consecutive capture failures (startup no-device is immediate).
+  auto_maintenance_after_failures: 2

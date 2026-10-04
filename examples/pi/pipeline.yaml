@@ -1,0 +1,31 @@
+# Copy over pi/pipeline/config/pipeline.example.yaml when this repo no longer
+# ships a named camera. Paths are relative to the repo root unless absolute.
+# Provision copies pipeline.example.yaml to /etc/webcam-pipeline/pipeline.yaml
+# only when that file does not exist yet.
+
+repo_root: null  # null = auto-detect; provision rewrites this to the install root
+
+cameras:
+  - example
+
+bind_host: "0.0.0.0"
+bind_port: 8090
+
+poll_interval_seconds: 60
+
+logging:
+  level: INFO
+
+http:
+  refresh_min_interval_seconds: 5
+
+# Credentials from the environment (see examples/pi/r2.env), not from this file.
+# Per-camera URL override: WEBCAM_<ID>_SOURCE_URL
+publish:
+  enabled: false
+  backend: r2   # r2 | local
+  local_outbox: data/outbox
+  r2:
+    bucket: example-webcam
+    endpoint_url: null   # https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+    region: auto

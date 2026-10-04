@@ -1,0 +1,48 @@
+name: tower
+visibility: public
+description: >-
+  Example portrait church-tower crop (9:16). Tune left/top/right/bottom on a
+  real daylight frame before publish.
+
+crop:
+  mode: arbitrary
+  left: 0.565
+  top: 0.22
+  right: 0.723
+  bottom: 0.50
+  aspect_ratio: "9:16"
+
+output:
+  width: 900
+  height: 1600
+  jpeg_quality: 80
+  filename: tower.jpg
+  r2_live_key: null
+  r2_history_variant: tower
+
+publish: false
+
+privacy:
+  # Tight tower framing usually needs no masks; add crop-relative rects if
+  # windows appear after retuning the crop.
+  masks: []
+
+watermark:
+  enabled: false
+
+site_badge:
+  enabled: true
+  site: example.example
+  temperature: true
+  font_size: 26
+  stroke_width: 2
+  margin: 28
+
+timestamp:
+  enabled: true
+  position: bottom-left
+  format: "%Y-%m-%d %H:%M"
+  opacity: 0.85
+  font_size: 24
+  stroke_width: 2
+  margin: 28

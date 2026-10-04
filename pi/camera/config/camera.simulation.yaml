@@ -1,0 +1,36 @@
+# Local/CI fixture backend only — do not install on the production Pi.
+
+bind_host: "0.0.0.0"
+bind_port: 8080
+
+capture_backend: simulation
+simulation_image: tests/fixtures/sample.jpg
+
+storage:
+  image_path: data/image.jpg
+  keep_history: 0
+  history_dir: data/history
+
+capture:
+  width: 4056
+  height: 3040
+  jpeg_quality: 88
+  interval_seconds: 30
+  timeout_seconds: 15
+  exposure_mode: auto
+  awb_mode: auto
+
+http:
+  capture_min_interval_seconds: 5
+  max_body_bytes: 65536
+
+live_preview:
+  duration_seconds: 300
+  interval_seconds: 0.75
+
+logging:
+  level: INFO
+
+health:
+  stale_after_seconds: 90
+  auto_maintenance_after_failures: 2

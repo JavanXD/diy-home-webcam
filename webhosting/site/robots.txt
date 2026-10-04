@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://webcam.example.com/sitemap.xml

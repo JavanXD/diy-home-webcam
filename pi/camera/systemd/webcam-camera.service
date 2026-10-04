@@ -1,0 +1,29 @@
+[Unit]
+Description=Home webcam camera appliance
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=webcam
+Group=webcam
+SupplementaryGroups=video render
+WorkingDirectory=/opt/home-webcam-pipeline/pi/camera
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/home-webcam-pipeline/pi/camera/.venv/bin/python -m app.main --config /etc/webcam-camera/camera.yaml
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/home-webcam-pipeline/pi/camera/data /var/lib/webcam-camera
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+LockPersonality=true
+MemoryDenyWriteExecute=false
+
+[Install]
+WantedBy=multi-user.target

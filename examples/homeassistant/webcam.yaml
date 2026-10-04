@@ -1,0 +1,240 @@
+# Example Webcam — Home Assistant package
+#
+# Copy into HA packages/ after replacing these tokens (search the file):
+#   192.168.1.50      Pi LAN address
+#   example           camera id (cameras/example)
+#   webcam_example    entity object_id prefix
+#   Example Webcam    display name
+#
+# homeassistant:
+#   packages: !include_dir_named packages
+#
+# Live JPEGs are template image entities. HA removed YAML for Generic Camera in 2024.2.
+# Schedule and crops stay on the Pi: http://192.168.1.50:8090/schedule/ui and /variants/ui
+
+rest:
+  - resource: http://192.168.1.50:8080/health
+    scan_interval: 60
+    sensor:
+      - name: Example Webcam Cam Health
+        unique_id: webcam_example_cam_health
+        icon: mdi:heart-pulse
+        value_template: "{{ value_json.status }}"
+        json_attributes:
+          - summary
+          - version
+          - camera_model
+          - backend
+          - camera_detected
+          - image_age_seconds
+          - consecutive_failure_count
+          - last_successful_capture
+          - last_capture_error
+          - connectivity
+          - maintenance
+      - name: Example Webcam Cam Image Age
+        unique_id: webcam_example_cam_image_age
+        icon: mdi:timer-outline
+        device_class: duration
+        state_class: measurement
+        unit_of_measurement: s
+        value_template: >-
+          {{ none if value_json.image_age_seconds is none
+             else (value_json.image_age_seconds | float | round(0) | int) }}
+
+  - resource: http://192.168.1.50:8090/health
+    scan_interval: 60
+    sensor:
+      - name: Example Webcam Pipeline Status
+        unique_id: webcam_example_pipeline_status
+        icon: mdi:pipe
+        value_template: "{{ value_json.status }}"
+        json_attributes:
+          - summary
+          - version
+          - uptime_seconds
+          - last_cycle_at
+          - last_cycle_summary
+          - camera_count
+          - cameras
+          - publish
+          - schedule
+
+  - resource: http://192.168.1.50:8090/schedule/status?camera=example
+    scan_interval: 60
+    sensor:
+      - name: Example Webcam Public Schedule
+        unique_id: webcam_example_public_schedule
+        icon: mdi:calendar-clock
+        value_template: "{{ value_json.summary }}"
+        json_attributes:
+          - public_online
+          - mode
+          - reason
+          - timezone
+          - back_at
+          - goes_online_at
+          - goes_offline_at
+          - next_change_at
+          - sunrise
+          - sunset
+          - window
+          - sun
+          - scope
+
+template:
+  - triggers:
+      - trigger: time_pattern
+        seconds: "/30"
+      - trigger: homeassistant
+        event: start
+    image:
+      - name: Example Webcam Private
+        unique_id: webcam_example_private
+        default_entity_id: image.webcam_example_private
+        icon: mdi:cctv
+        verify_ssl: false
+        url: >-
+          http://192.168.1.50:8090/cameras/example/variants/private.jpg?t={{ now().timestamp() | int }}
+
+      - name: Example Webcam Public LAN
+        unique_id: webcam_example_public_lan
+        default_entity_id: image.webcam_example_public_lan
+        icon: mdi:image-filter-hdr
+        verify_ssl: false
+        url: >-
+          http://192.168.1.50:8090/cameras/example/variants/landscape.jpg?t={{ now().timestamp() | int }}
+
+  - binary_sensor:
+      - name: Example Webcam Cam Reachable
+        unique_id: webcam_example_cam_reachable
+        default_entity_id: binary_sensor.webcam_example_cam_reachable
+        device_class: connectivity
+        icon: mdi:lan-connect
+        state: >-
+          {{ states('sensor.webcam_example_cam_health') not in ['unknown', 'unavailable', 'none'] }}
+
+      - name: Example Webcam Camera Attached
+        unique_id: webcam_example_camera_attached
+        default_entity_id: binary_sensor.webcam_example_camera_attached
+        device_class: connectivity
+        icon: mdi:camera
+        state: >-
+          {{ state_attr('sensor.webcam_example_cam_health', 'camera_detected') is true }}
+
+      - name: Example Webcam Cam OK
+        unique_id: webcam_example_cam_ok
+        default_entity_id: binary_sensor.webcam_example_cam_ok
+        device_class: connectivity
+        icon: mdi:cctv
+        state: >-
+          {% set h = states('sensor.webcam_example_cam_health') %}
+          {% set detected = state_attr('sensor.webcam_example_cam_health', 'camera_detected') %}
+          {% set m = state_attr('sensor.webcam_example_cam_health', 'maintenance') %}
+          {% set auto = (m.get('auto') or m.get('maintenance_auto')) if m is mapping else false %}
+          {{ h in ['HEALTHY', 'DEGRADED']
+             and detected is true
+             and not (auto is true) }}
+        attributes:
+          health: "{{ states('sensor.webcam_example_cam_health') }}"
+          summary: "{{ state_attr('sensor.webcam_example_cam_health', 'summary') }}"
+          camera_detected: "{{ state_attr('sensor.webcam_example_cam_health', 'camera_detected') }}"
+          maintenance_enabled: >-
+            {% set m = state_attr('sensor.webcam_example_cam_health', 'maintenance') %}
+            {{ (m.get('enabled') if m is mapping else false) }}
+          maintenance_auto: >-
+            {% set m = state_attr('sensor.webcam_example_cam_health', 'maintenance') %}
+            {{ ((m.get('auto') or m.get('maintenance_auto')) if m is mapping else false) }}
+          maintenance_reason: >-
+            {% set m = state_attr('sensor.webcam_example_cam_health', 'maintenance') %}
+            {{ (m.get('reason') if m is mapping else none) }}
+
+      - name: Example Webcam Pipeline OK
+        unique_id: webcam_example_pipeline_ok
+        default_entity_id: binary_sensor.webcam_example_pipeline_ok
+        device_class: connectivity
+        icon: mdi:pipe
+        state: >-
+          {{ states('sensor.webcam_example_pipeline_status') in ['HEALTHY', 'DEGRADED'] }}
+
+      - name: Example Webcam Public Online
+        unique_id: webcam_example_public_online
+        default_entity_id: binary_sensor.webcam_example_public_online
+        device_class: connectivity
+        icon: mdi:weather-sunset
+        state: >-
+          {{ state_attr('sensor.webcam_example_public_schedule', 'public_online') is true }}
+        attributes:
+          summary: "{{ states('sensor.webcam_example_public_schedule') }}"
+          mode: "{{ state_attr('sensor.webcam_example_public_schedule', 'mode') }}"
+          goes_offline_at: "{{ state_attr('sensor.webcam_example_public_schedule', 'goes_offline_at') }}"
+          goes_online_at: "{{ state_attr('sensor.webcam_example_public_schedule', 'goes_online_at') }}"
+
+rest_command:
+  webcam_example_cam_capture:
+    url: http://192.168.1.50:8080/capture
+    method: POST
+  webcam_example_pipeline_refresh:
+    url: http://192.168.1.50:8090/refresh
+    method: POST
+    content_type: application/json
+    payload: '{"camera":"example"}'
+  webcam_example_pipeline_regenerate:
+    url: http://192.168.1.50:8090/refresh
+    method: POST
+    content_type: application/json
+    payload: '{"camera":"example","render_only":true}'
+  webcam_example_cam_maintenance_on:
+    url: http://192.168.1.50:8080/maintenance/on
+    method: POST
+  webcam_example_cam_maintenance_off:
+    url: http://192.168.1.50:8080/maintenance/off
+    method: POST
+
+switch:
+  - platform: rest
+    name: Example Webcam Wartungsbild
+    unique_id: webcam_example_wartungsbild
+    icon: mdi:image-off
+    resource: http://192.168.1.50:8080/maintenance
+    state_resource: http://192.168.1.50:8080/maintenance
+    is_on_template: "{{ value_json.enabled }}"
+    body_on: '{"enabled": true}'
+    body_off: '{"enabled": false}'
+    headers:
+      Content-Type: application/json
+    scan_interval: 30
+
+input_button:
+  webcam_example_refresh_capture:
+    name: Example Webcam Pi capture
+    icon: mdi:camera-iris
+  webcam_example_pipeline_refresh:
+    name: Example Webcam pipeline refresh
+    icon: mdi:cloud-refresh
+  webcam_example_pipeline_regenerate:
+    name: Example Webcam regenerate variants
+    icon: mdi:image-refresh
+
+automation:
+  - id: webcam_example_refresh_capture
+    alias: Example Webcam Pi capture
+    trigger:
+      - platform: state
+        entity_id: input_button.webcam_example_refresh_capture
+    action:
+      - service: rest_command.webcam_example_cam_capture
+  - id: webcam_example_pipeline_refresh
+    alias: Example Webcam pipeline refresh
+    trigger:
+      - platform: state
+        entity_id: input_button.webcam_example_pipeline_refresh
+    action:
+      - service: rest_command.webcam_example_pipeline_refresh
+  - id: webcam_example_pipeline_regenerate
+    alias: Example Webcam regenerate variants
+    trigger:
+      - platform: state
+        entity_id: input_button.webcam_example_pipeline_regenerate
+    action:
+      - service: rest_command.webcam_example_pipeline_regenerate

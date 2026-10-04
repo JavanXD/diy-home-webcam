@@ -1,0 +1,110 @@
+name: landscape
+visibility: public
+description: Public landscape. Tune the crop and masks on a real frame before publish.
+
+crop:
+  mode: arbitrary
+  left: 0.0
+  top: 0.0
+  right: 1.0
+  bottom: 1.0
+  # Match output so cover-fit only scales.
+  aspect_ratio: "16:9"
+
+output:
+  width: 1600
+  height: 900
+  jpeg_quality: 80
+  filename: landscape.jpg
+  # Same object as camera.yaml publish.public_live_key when this variant is public live.
+  r2_live_key: live/example-live-webcam.jpg
+  r2_history_variant: landscape
+
+privacy:
+  # Normalized 0–1 relative to the cropped frame (full crop here = full raw).
+  # Example: several tight window zones with admin labels (not drawn on the JPEG).
+  masks:
+    - type: rect
+      label: left dormer
+      left: 0.0
+      top: 0.81
+      right: 0.065
+      bottom: 0.945
+      mode: blur
+      strength: 18
+    - type: rect
+      label: CL roof skylight 1
+      left: 0.23
+      top: 0.82
+      right: 0.31
+      bottom: 0.9
+      mode: blur
+      strength: 18
+    - type: rect
+      label: CL roof skylight 2
+      left: 0.33
+      top: 0.805
+      right: 0.41
+      bottom: 0.885
+      mode: blur
+      strength: 18
+    - type: rect
+      label: CL roof skylight 3
+      left: 0.4
+      top: 0.8
+      right: 0.48
+      bottom: 0.88
+      mode: blur
+      strength: 18
+    - type: rect
+      label: CL wall window L
+      left: 0.34
+      top: 0.92
+      right: 0.43
+      bottom: 1.0
+      mode: blur
+      strength: 18
+    - type: rect
+      label: CL wall window R
+      left: 0.41
+      top: 0.91
+      right: 0.51
+      bottom: 1.0
+      mode: blur
+      strength: 18
+    - type: rect
+      label: mid gable window
+      left: 0.6
+      top: 0.83
+      right: 0.675
+      bottom: 0.925
+      mode: blur
+      strength: 18
+    - type: rect
+      label: BR curtains window
+      left: 0.90
+      top: 0.83
+      right: 1.0
+      bottom: 1.0
+      mode: blur
+      strength: 18
+
+watermark:
+  enabled: false
+
+site_badge:
+  enabled: true
+  site: example.com
+  temperature: false
+  font_size: 26
+  stroke_width: 2
+  margin: 28
+
+timestamp:
+  enabled: true
+  position: bottom-left
+  format: "%Y-%m-%d %H:%M"
+  opacity: 0.85
+  font_size: 24
+  stroke_width: 2
+  margin: 28

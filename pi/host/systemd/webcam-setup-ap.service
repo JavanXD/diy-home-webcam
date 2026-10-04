@@ -1,0 +1,19 @@
+[Unit]
+Description=Webcam setup Wi-Fi AP when no home Wi-Fi is configured
+Documentation=file:///opt/home-webcam-pipeline/docs/diy/BUILD.md
+After=NetworkManager.service network-online.target
+Wants=NetworkManager.service network-online.target
+# Pipeline serves /setup/ui; start AP even if pipeline is still coming up.
+After=webcam-pipeline.service
+Wants=webcam-pipeline.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=-/etc/webcam-setup-ap.env
+ExecStart=/opt/home-webcam-pipeline/pi/scripts/webcam-setup-ap.sh ensure
+ExecStop=/opt/home-webcam-pipeline/pi/scripts/webcam-setup-ap.sh stop
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target
