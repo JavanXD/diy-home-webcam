@@ -2,7 +2,10 @@
 
 ## Report a vulnerability
 
-Open a **private GitHub security advisory** on this repository (or on [`JavanXD/diy-home-webcam`](https://github.com/JavanXD/diy-home-webcam) for the public DIY tree), or email **mail@javan.de**.
+Open a **private GitHub security advisory** on this repository, or on the public DIY tree:
+
+- [New advisory — `JavanXD/diy-home-webcam`](https://github.com/JavanXD/diy-home-webcam/security/advisories/new)
+- Or: this repo → **Security** → **Advisories** → **New draft security advisory**
 
 Do not file a public issue that includes live hostnames, tokens, unpublished images, or private frames.
 
@@ -20,7 +23,7 @@ This section describes **practical DIY alignment goals** with the spirit of the 
 | Goal | What we do |
 |------|------------|
 | No universal default password | Setup AP PSK is **unique per device** (derived from board serial / machine-id). Written to `/boot/firmware/webcam-setup.txt` and shown on Setup UI while the AP is up — not a shared README password. |
-| Vulnerability disclosure | Contact above (private advisory or mail@javan.de). |
+| Vulnerability disclosure | Private GitHub security advisory only (link above). |
 | Update expectation | Git pull / re-flash / Releases + apt; honest DIY support window (above). |
 | Secure by default | Setup AP auto-disables after home Wi-Fi join; Imager **SSH public key** preferred; password SSH disabled on first boot when `authorized_keys` is present; unique emergency SSH password on the boot card when keys are absent. |
 | Trusted LAN UI | No mandatory login on `:8080` / `:8090` — the home network is the trust boundary (CRA focus here is defaults + updateability, not LAN auth on a local appliance). |

@@ -11,7 +11,7 @@ Practical DIY alignment with CRA / radio IoT expectations — **not** certificat
 | Goal | Implementation |
 |------|----------------|
 | No shared universal default password | Setup AP PSK unique per board (serial / machine-id). Find it in `/boot/firmware/webcam-setup.txt` after flash, or on Setup UI while connected to `Webcam-Setup`. |
-| Vulnerability disclosure | Private GitHub security advisory, or **mail@javan.de**. |
+| Vulnerability disclosure | Private GitHub security advisory only ([new advisory](https://github.com/JavanXD/diy-home-webcam/security/advisories/new)). |
 | Updates | Pull/sync + deploy, or re-flash Releases / rebuild image; keep Debian packages updated. DIY project — no commercial support SLA. |
 | Secure defaults | AP off after join; prefer Imager SSH **public key**; password SSH off when keys exist; unique `pi` password on the boot card for emergency console. |
 | No mandatory LAN login | Trusted home network is the boundary for `:8080` / `:8090`. |
@@ -76,4 +76,4 @@ Flashable images (`image/config`, pi-gen):
 
 ## Reporting
 
-Private GitHub security advisory on the repo you use, or email **mail@javan.de**. Do not open a public issue with live hostnames, tokens, or unmasked private frames.
+Open a [private GitHub security advisory](https://github.com/JavanXD/diy-home-webcam/security/advisories/new) on this repository (or the equivalent on the ops checkout). Do not open a public issue with live hostnames, tokens, or unmasked private frames.
