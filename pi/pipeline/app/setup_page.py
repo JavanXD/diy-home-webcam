@@ -45,6 +45,16 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
       <input id="weatherTimeout" type="number" min="1" max="30" step="1" inputmode="numeric">
     </div>
   </div>
+  <label for="pollInterval">Refresh interval (seconds)</label>
+  <input id="pollInterval" type="number" min="15" max="600" step="1" inputmode="numeric" value="60">
+  <p class="field-help">How often the pipeline pulls a new frame from the camera (usually 30–60). Lower uses more CPU and bandwidth.</p>
+  <label for="statusLang">Public slide language</label>
+  <select id="statusLang">
+    <option value="english">English — Maintenance / Offline at night</option>
+    <option value="german">German — Wartung / Nachts offline</option>
+    <option value="custom">Custom (edit status_text in camera.yaml)</option>
+  </select>
+  <p class="field-help">Words on the public night and maintenance slides. Custom wording stays in YAML until you pick English or German here.</p>
 """
     create = """
   <p class="field-help">Copies <code>examples/cameras/example</code> and adds the id to the pipeline camera list. The existing camera stays.</p>
@@ -181,6 +191,8 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     set("weatherTimeout", site.weather_timeout_seconds != null ? site.weather_timeout_seconds : 4);
     set("siteLabel", site.site_label || "");
     set("liveKey", site.public_live_key || "");
+    set("pollInterval", site.poll_interval_seconds != null ? site.poll_interval_seconds : 60);
+    set("statusLang", site.status_language || "english");
   }}
 
   function fillCameras(ids, current) {{
@@ -286,22 +298,27 @@ def setup_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     var btn = document.getElementById("save");
     window.lanUi.setBusy(btn, true, "Saving…");
     try {{
+      var payload = {{
+        display_name: val("displayName"),
+        timezone: val("timezone"),
+        latitude: val("lat"),
+        longitude: val("lon"),
+        weather_url: val("weatherUrl"),
+        weather_ttl_seconds: Number(val("weatherTtl")),
+        weather_timeout_seconds: Number(val("weatherTimeout")),
+        site_label: val("siteLabel"),
+        public_live_key: val("liveKey"),
+        poll_interval_seconds: Number(val("pollInterval"))
+      }};
+      var lang = val("statusLang");
+      if (lang === "english" || lang === "german") payload.status_language = lang;
       await window.lanUi.fetchJson("/setup?camera=" + encodeURIComponent(cam), {{
         method: "POST",
         headers: {{ "Content-Type": "application/json" }},
-        body: JSON.stringify({{
-          display_name: val("displayName"),
-          timezone: val("timezone"),
-          latitude: val("lat"),
-          longitude: val("lon"),
-          weather_url: val("weatherUrl"),
-          weather_ttl_seconds: Number(val("weatherTtl")),
-          weather_timeout_seconds: Number(val("weatherTimeout")),
-          site_label: val("siteLabel"),
-          public_live_key: val("liveKey")
-        }})
+        body: JSON.stringify(payload)
       }});
       window.lanUi.showBanner("msg", "info", "Saved", "camera.yaml updated");
+      await loadSite();
     }} catch (e) {{
       window.lanUi.showBanner("msg", "bad", "Save failed", e && e.message ? e.message : String(e));
     }} finally {{

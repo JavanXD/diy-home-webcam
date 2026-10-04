@@ -144,7 +144,7 @@ If you copied `examples/cameras/example/` to `cameras/<id>/`:
 2. Set `cameras:` in `/etc/webcam-pipeline/pipeline.yaml` to your id. Start from [`examples/pi/pipeline.yaml`](../../examples/pi/pipeline.yaml) (`example`).
 3. `sudo systemctl restart webcam-pipeline`
 4. Crops and privacy masks: `http://<pi>:8090/variants/ui` — drag the **cyan** crop on the full frame, then yellow privacy rectangles on the served preview.
-5. Name, place, weather URL, and Wi-Fi: `http://<pi>:8090/setup/ui` (writes `camera.yaml`; the Wi-Fi password stays in NetworkManager, not in git).
+5. Name, place, weather URL, refresh interval, public slide language (EN/DE), and Wi-Fi: `http://<pi>:8090/setup/ui` (writes `camera.yaml`; the Wi-Fi password stays in NetworkManager, not in git). Timelapse archive budget / retention: `:8090/timelapse/ui` → Save archive settings.
 
 Public sunrise/sunset uses `location` and `timezone` in that `camera.yaml`. Setup saves those into the schedule file as well.
 
@@ -200,7 +200,7 @@ If `maintenance-base.jpg` / `offline-base.jpg` are present, the pipeline draws s
 
 For your own camera, delete those two files. Night and maintenance then use a plain dark slide. You can still upload a night photo on the Schedule page.
 
-Wording lives in `cameras/<id>/camera.yaml` under `status_text` (`maintenance_title`, `maintenance_body`, `night_title`, `night_body`, `back_at_label`, `today`, `tomorrow`, `weekdays`). Leave the block out for English (`Maintenance`, `Offline at night`, `Back at`). This site sets the German lines explicitly.
+Wording: Setup → **Public slide language** (English or German presets). Custom lines stay in `cameras/<id>/camera.yaml` under `status_text` (`maintenance_title`, `maintenance_body`, `night_title`, `night_body`, `back_at_label`, `today`, `tomorrow`, `weekdays`) — leave the block out for English. This site sets the German lines explicitly.
 
 To bake your own photo into the shipped files instead:
 

@@ -9,6 +9,7 @@ source:
   health_url: http://127.0.0.1:8080/health
   timeout_seconds: 8
 
+# Also editable on Setup (Refresh interval).
 poll_interval_seconds: 60
 
 storage:
@@ -29,6 +30,7 @@ publish:
     retention_days: 90
 
 # Daylight frames for the LAN Timelapse page. Stored under data/<id>/timelapse/.
+# Also editable on Timelapse → Save archive settings.
 timelapse:
   enabled: true
   min_interval_seconds: 120
@@ -54,6 +56,8 @@ location:
 
 # Night and maintenance wording. Leave this out for English
 # ("Offline at night", "Back at", "Maintenance").
+# Setup → Public slide language can set English or German presets.
+# Custom strings: leave language on Custom (or edit this block in YAML).
 # Delete pi/camera/app/assets/maintenance-base.jpg and
 # pi/pipeline/app/assets/offline-base.jpg for a plain dark slide
 # instead of a photo. The Schedule page can still upload a night photo.

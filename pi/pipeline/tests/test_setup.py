@@ -52,6 +52,8 @@ def test_save_site_keeps_publish_and_updates_weather(tmp_path: Path):
     before = read_site(tmp_path, "example")
     assert before["weather_url"] == "https://example.com/api/weather"
     assert before["display_name"] == "Example Webcam"
+    assert before["status_language"] == "english"
+    assert before["poll_interval_seconds"] == 60
     saved = save_site(
         tmp_path,
         "example",
@@ -63,12 +65,22 @@ def test_save_site_keeps_publish_and_updates_weather(tmp_path: Path):
             "weather_url": "https://example.com/api/weather",
             "weather_ttl_seconds": 300,
             "weather_timeout_seconds": 4,
+            "poll_interval_seconds": 45,
+            "status_language": "german",
         },
     )
     assert saved["weather_url"] == "https://example.com/api/weather"
+    assert saved["poll_interval_seconds"] == 45
+    assert saved["status_language"] == "german"
     raw = yaml.safe_load((tmp_path / "cameras/example/camera.yaml").read_text())
     assert raw["publish"]["public_live_key"] == "live/example-live-webcam.jpg"
+    assert raw["poll_interval_seconds"] == 45
+    assert raw["status_text"]["night_title"] == "Nachts offline"
     assert "password" not in (tmp_path / "cameras/example/camera.yaml").read_text()
+    english = save_site(tmp_path, "example", {"status_language": "english"})
+    assert english["status_language"] == "english"
+    raw2 = yaml.safe_load((tmp_path / "cameras/example/camera.yaml").read_text())
+    assert "status_text" not in raw2
 
 
 def test_save_site_rejects_bad_weather_url(tmp_path: Path):
@@ -121,11 +133,14 @@ def test_setup_http_roundtrip(tmp_path: Path):
             html = resp.read().decode()
         assert "<title>Webcam — Setup</title>" in html
         assert "Example Webcam" not in html
+        assert "Public slide language" in html
+        assert "Refresh interval" in html
         with urllib.request.urlopen(
             f"http://127.0.0.1:{port}/setup?camera=example"
         ) as resp:
             body = json.loads(resp.read().decode())
         assert body["weather_url"] == "https://example.com/api/weather"
+        assert body["status_language"] == "english"
         req = urllib.request.Request(
             f"http://127.0.0.1:{port}/setup?camera=example",
             data=json.dumps(
