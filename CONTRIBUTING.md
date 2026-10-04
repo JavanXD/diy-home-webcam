@@ -21,7 +21,7 @@ Capture (`:8080`) and the pipeline (`:8090`) stay separate processes. Home Assis
 
 Copy [`examples/cameras/example/`](examples/cameras/example/) to `cameras/<id>/` and follow [examples/README.md](examples/README.md). Do not commit Wi-Fi passwords, SSH keys, or R2 tokens.
 
-Cameras live under `cameras/<id>/` (ops: site overlay under gitignored `private/`). New work should read `cameras/<id>/` rather than hard-coding a site name in Python.
+Cameras live under `cameras/<id>/`. New work should read that path rather than hard-coding a site name in Python.
 
 ## Pull requests
 

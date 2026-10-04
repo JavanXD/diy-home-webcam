@@ -132,7 +132,7 @@ Env file shape (no real secrets in git): [`examples/pi/r2.env`](../../examples/p
 **Optional Cloudflare Worker landing** (R2 binding):
 
 1. Edit `webhosting/wrangler.jsonc` (template: [`examples/webhosting/wrangler.jsonc`](../../examples/webhosting/wrangler.jsonc)) and the `LIVE_MAP` in `webhosting/worker/src/index.ts` so the public path matches `publish.public_live_key`.
-2. Replace the landing page under `webhosting/site/` with your own copy. The pages in this ops checkout are site-specific.
+2. Replace the landing page under `webhosting/site/` with your own copy.
 3. `cd webhosting && npx wrangler deploy`
 
 Keep `workers_dev` and `preview_urls` false once a custom domain is attached. Local preview: `npx wrangler dev` → http://127.0.0.1:8787/
