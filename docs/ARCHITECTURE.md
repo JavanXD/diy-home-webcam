@@ -37,7 +37,7 @@ Local LAN JPEG filenames are `{variant}.jpg` (e.g. `landscape.jpg`, `wide.jpg`, 
 
 ## Timelapse + retention
 
-- LAN page `:8090/timelapse/ui` stores daylight frames under `data/<camera>/timelapse/` (about every 2 minutes while the public schedule is online) and builds an MP4 or GIF there. Those files are not uploaded.
+- LAN page `:8090/timelapse/ui` stores daylight frames under `data/<camera>/timelapse/` (about every 2 minutes while the public schedule is online) and builds an MP4 or GIF there. Those files are not uploaded. Operators can delete one History day (`POST /timelapse/<day>/delete` + confirm) — frames + that day’s exports only.
 - The bucket gets the **current live JPEG** only, unless `publish.history.enabled` is set true.
 - Encoder: `scripts/make-timelapse.py` (GIF or APNG from a folder of JPEGs) remains for offline use.
 - Retention: `cameras/*/camera.yaml` → `timelapse.retention_days` (default **400**) plus a size budget `timelapse.max_gb` (default **40**) under `data/<camera>/timelapse/`. Oldest day folders (and their exports) are pruned when over either limit. `publish.history.retention_days` still applies if bucket history is turned on; prune with `scripts/prune-history.py`.
