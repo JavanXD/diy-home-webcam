@@ -73,7 +73,7 @@ make test
 
 Parts and flash steps: [docs/diy/SHOPPING-LIST.md](docs/diy/SHOPPING-LIST.md) and [docs/diy/BUILD.md](docs/diy/BUILD.md).
 
-**Preferred:** flashable image from the **Build Pi image** workflow → boot → join home Wi-Fi (or `Webcam-Setup` AP) → open `http://home-webcam.local:8080/`.
+**Preferred:** download `home-webcam-*.img.xz` from [Releases](https://github.com/JavanXD/diy-home-webcam/releases) → flash → boot → join home Wi-Fi (or `Webcam-Setup` AP) → open `http://home-webcam.local:8080/`.
 
 ```mermaid
 flowchart TD
