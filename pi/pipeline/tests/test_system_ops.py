@@ -176,15 +176,15 @@ def test_network_glance_eth_and_wifi():
         if args[:3] == ["nmcli", "-g", "IP4.ADDRESS"]:
             dev = args[-1]
             if dev == "eth0":
-                return 0, "192.168.178.151/24\n", ""
-            return 0, "192.168.178.150/24\n", ""
+                return 0, "home-webcam.local/24\n", ""
+            return 0, "home-webcam.local/24\n", ""
         if args[:3] == ["nmcli", "-g", "IP4.GATEWAY"]:
-            return 0, "192.168.178.1\n", ""
+            return 0, "192.168.1.1\n", ""
         return 1, "", "unexpected"
 
     out = network_glance(runner=runner)
     assert out["available"] is True
     assert [i["device"] for i in out["interfaces"]] == ["eth0", "wlan0"]
-    assert out["interfaces"][0]["ipv4"] == "192.168.178.151"
+    assert out["interfaces"][0]["ipv4"] == "home-webcam.local"
     assert out["interfaces"][1]["ssid"] == "HomeNet"
-    assert out["interfaces"][1]["gateway"] == "192.168.178.1"
+    assert out["interfaces"][1]["gateway"] == "192.168.1.1"

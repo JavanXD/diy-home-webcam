@@ -2,7 +2,7 @@
 
 From a blank microSD to a LAN JPEG, then optional public hosting. Parts: [SHOPPING-LIST.md](SHOPPING-LIST.md). Your own names and crops: [examples/README.md](../../examples/README.md).
 
-This checkout ships a starter camera called `example` (ops: the live camera lives under gitignored `private/`). The **DIY flashable image** defaults to the generic `example` camera and hostname `home-webcam`. To start a different camera from a blank OS, copy the example **before** the first pipeline install so `pipeline.yaml` lists your id.
+This checkout ships a starter camera called `example`. The **DIY flashable image** defaults to the generic `example` camera and hostname `home-webcam`. To start a different camera from a blank OS, copy the example **before** the first pipeline install so `pipeline.yaml` lists your id.
 
 ## 1. Assemble
 
@@ -107,7 +107,7 @@ A different lens follows the same rule: CS-mount, ring off; C-mount, ring on. Fo
 If you copied `examples/cameras/example/` to `cameras/<id>/`:
 
 1. Edit `cameras/<id>/camera.yaml` (source URL stays `http://127.0.0.1:8080/raw.jpg` when capture and pipeline share the Pi).
-2. Set `cameras:` in `/etc/webcam-pipeline/pipeline.yaml` to your id. Start from [`examples/pi/pipeline.yaml`](../../examples/pi/pipeline.yaml) (`example`); the ops overlay may list a different id.
+2. Set `cameras:` in `/etc/webcam-pipeline/pipeline.yaml` to your id. Start from [`examples/pi/pipeline.yaml`](../../examples/pi/pipeline.yaml) (`example`).
 3. `sudo systemctl restart webcam-pipeline`
 4. Crops and privacy masks: `http://<pi>:8090/variants/ui` — drag the **cyan** crop on the full frame, then yellow privacy rectangles on the served preview.
 5. Name, place, weather URL, and Wi-Fi: `http://<pi>:8090/setup/ui` (writes `camera.yaml`; the Wi-Fi password stays in NetworkManager, not in git).
@@ -143,7 +143,7 @@ Private variants are **LAN-only** images (home network only; not the public webs
 
 Copy [`examples/homeassistant/webcam.yaml`](../../examples/homeassistant/webcam.yaml) into HA `packages/` and replace the host, camera id, and display name. Lovelace: [`examples/homeassistant/lovelace.yaml`](../../examples/homeassistant/lovelace.yaml).
 
-A starter package is `homeassistant/packages/webcam_example.yaml` (ops live package is under `private/`).
+A starter package is `homeassistant/packages/webcam_example.yaml`.
 
 ## 7. Optional: NVMe as the OS disk
 
@@ -151,7 +151,7 @@ Desired state for **this** Pi is `pi/host/desired.env` (NVMe first). A generic c
 
 ## Maintenance images
 
-If `maintenance-base.jpg` / `offline-base.jpg` are present, the pipeline draws status text on top at the final size. Ops may ship site-specific bases under `private/`; DIY starts without them (plain dark slide).
+If `maintenance-base.jpg` / `offline-base.jpg` are present, the pipeline draws status text on top at the final size. Delete them for a plain dark slide.
 
 For your own camera, delete those two files. Night and maintenance then use a plain dark slide. You can still upload a night photo on the Schedule page.
 

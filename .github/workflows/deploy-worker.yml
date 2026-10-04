@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: Deploy schellbronn-webcam
+    name: Deploy diy-home-webcam
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

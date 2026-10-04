@@ -970,7 +970,7 @@ def _variants_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     var p = path || "";
     if (!p) return "";
     if (p.indexOf("http") === 0) return p;
-    var host = location.hostname || "raspicam.local";
+    var host = location.hostname || "home-webcam.local";
     var port = location.port || "8090";
     return "http://" + host + ":" + port + p;
   }}

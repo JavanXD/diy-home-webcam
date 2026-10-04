@@ -27,17 +27,17 @@ from app.wifi_nm import parse_wifi_list, wifi_connect  # noqa: E402
 
 
 def _write_camera(root: Path) -> None:
-    cam = root / "cameras" / "schellbronn"
+    cam = root / "cameras" / "example"
     cam.mkdir(parents=True)
     (cam / "camera.yaml").write_text(
-        "id: schellbronn\n"
-        "display_name: Webcam Schellbronn\n"
+        "id: example\n"
+        "display_name: Example Webcam\n"
         "source:\n  url: http://127.0.0.1:8080/raw.jpg\n"
         "publish:\n  enabled: true\n"
-        "  public_live_key: live/schellbronn-live-webcam.jpg\n"
+        "  public_live_key: live/example-live-webcam.jpg\n"
         "timezone: Europe/Berlin\n"
         "weather:\n"
-        "  url: https://ferienpark-schellbronn.de/api/weather\n"
+        "  url: https://example.com/api/weather\n"
         "  ttl_seconds: 300\n"
         "  timeout_seconds: 4\n"
         "location:\n"
@@ -49,32 +49,32 @@ def _write_camera(root: Path) -> None:
 
 def test_save_site_keeps_publish_and_updates_weather(tmp_path: Path):
     _write_camera(tmp_path)
-    before = read_site(tmp_path, "schellbronn")
-    assert before["weather_url"] == "https://ferienpark-schellbronn.de/api/weather"
-    assert before["display_name"] == "Webcam Schellbronn"
+    before = read_site(tmp_path, "example")
+    assert before["weather_url"] == "https://example.com/api/weather"
+    assert before["display_name"] == "Example Webcam"
     saved = save_site(
         tmp_path,
-        "schellbronn",
+        "example",
         {
-            "display_name": "Webcam Schellbronn",
+            "display_name": "Example Webcam",
             "timezone": "Europe/Berlin",
             "latitude": 48.7855,
             "longitude": 8.749,
-            "weather_url": "https://ferienpark-schellbronn.de/api/weather",
+            "weather_url": "https://example.com/api/weather",
             "weather_ttl_seconds": 300,
             "weather_timeout_seconds": 4,
         },
     )
-    assert saved["weather_url"] == "https://ferienpark-schellbronn.de/api/weather"
+    assert saved["weather_url"] == "https://example.com/api/weather"
     raw = yaml.safe_load((tmp_path / "cameras/example/camera.yaml").read_text())
-    assert raw["publish"]["public_live_key"] == "live/schellbronn-live-webcam.jpg"
+    assert raw["publish"]["public_live_key"] == "live/example-live-webcam.jpg"
     assert "password" not in (tmp_path / "cameras/example/camera.yaml").read_text()
 
 
 def test_save_site_rejects_bad_weather_url(tmp_path: Path):
     _write_camera(tmp_path)
     try:
-        save_site(tmp_path, "schellbronn", {"weather_url": "ftp://nope"})
+        save_site(tmp_path, "example", {"weather_url": "ftp://nope"})
     except ValueError as exc:
         assert "http" in str(exc)
     else:
@@ -108,7 +108,7 @@ def test_setup_http_roundtrip(tmp_path: Path):
     _write_camera(tmp_path)
     state = PipelineState(
         version="test",
-        config={"cameras": ["schellbronn"], "publish": {"enabled": False}},
+        config={"cameras": ["example"], "publish": {"enabled": False}},
         repo_root=tmp_path,
     )
     handler = make_handler(state, tmp_path)
@@ -120,14 +120,14 @@ def test_setup_http_roundtrip(tmp_path: Path):
         with urllib.request.urlopen(f"http://127.0.0.1:{port}/setup/ui") as resp:
             html = resp.read().decode()
         assert "<title>Webcam — Setup</title>" in html
-        assert "Webcam Schellbronn" not in html
+        assert "Example Webcam" not in html
         with urllib.request.urlopen(
-            f"http://127.0.0.1:{port}/setup?camera=schellbronn"
+            f"http://127.0.0.1:{port}/setup?camera=example"
         ) as resp:
             body = json.loads(resp.read().decode())
-        assert body["weather_url"] == "https://ferienpark-schellbronn.de/api/weather"
+        assert body["weather_url"] == "https://example.com/api/weather"
         req = urllib.request.Request(
-            f"http://127.0.0.1:{port}/setup?camera=schellbronn",
+            f"http://127.0.0.1:{port}/setup?camera=example",
             data=json.dumps(
                 {
                     "weather_url": "https://example.com/api/weather",
@@ -152,14 +152,14 @@ def test_create_camera_keeps_existing_and_rewrites_example_tokens(tmp_path: Path
     shutil.copytree(src, tmp_path / "examples" / "cameras" / "example")
     pipe = tmp_path / "pi" / "pipeline" / "config" / "pipeline.yaml"
     pipe.parent.mkdir(parents=True)
-    pipe.write_text("cameras:\n  - schellbronn\n", encoding="utf-8")
+    pipe.write_text("cameras:\n  - example\n", encoding="utf-8")
     created = create_camera(tmp_path, "shed", "Shed webcam", config_paths=[pipe])
     assert created["camera_id"] == "shed"
     assert created["display_name"] == "Shed webcam"
     assert created["public_live_key"] == "live/shed-live-webcam.jpg"
-    assert not (tmp_path / "cameras" / "schellbronn").exists()
+    assert not (tmp_path / "cameras" / "example").exists()
     listed = yaml.safe_load(pipe.read_text())["cameras"]
-    assert listed == ["schellbronn", "shed"]
+    assert listed == ["example", "shed"]
     text = (tmp_path / "cameras" / "shed" / "camera.yaml").read_text()
     assert "id: shed" in text
     assert "data/shed" in text
@@ -169,7 +169,7 @@ def test_publish_secret_stays_in_env_file(tmp_path: Path):
     env = tmp_path / "env"
     pipe = tmp_path / "pipeline.yaml"
     pipe.write_text(
-        "cameras:\n  - schellbronn\npublish:\n  enabled: false\n  r2:\n    bucket: old\n",
+        "cameras:\n  - example\npublish:\n  enabled: false\n  r2:\n    bucket: old\n",
         encoding="utf-8",
     )
     cfg = yaml.safe_load(pipe.read_text())

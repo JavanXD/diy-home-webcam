@@ -83,17 +83,17 @@ def test_local_publisher_outbox(tmp_path: Path, monkeypatch):
     pub = Publisher(cfg, repo_root=REPO)
     src = ROOT / "tests/fixtures/sample.jpg"
     result = pub.publish_public(
-        camera_id="schellbronn",
+        camera_id="example",
         variant_name="landscape",
         local_path=src,
-        live_key="live/schellbronn-live-webcam.jpg",
+        live_key="live/example-live-webcam.jpg",
         history_variant="landscape",
         history_cfg={"enabled": True, "min_interval_seconds": 0},
         captured_at=1_700_000_000,
     )
     assert result.ok is True
-    assert (tmp_path / "outbox/live/schellbronn-live-webcam.jpg").exists()
-    hist = list((tmp_path / "outbox/history/schellbronn/landscape").rglob("*.jpg"))
+    assert (tmp_path / "outbox/live/example-live-webcam.jpg").exists()
+    hist = list((tmp_path / "outbox/history/example/landscape").rglob("*.jpg"))
     assert len(hist) == 1
 
 
@@ -105,10 +105,10 @@ def test_publisher_skips_history_during_maintenance(tmp_path: Path, monkeypatch)
     )
     src = ROOT / "tests/fixtures/sample.jpg"
     result = pub.publish_public(
-        camera_id="schellbronn",
+        camera_id="example",
         variant_name="landscape",
         local_path=src,
-        live_key="live/schellbronn-live-webcam.jpg",
+        live_key="live/example-live-webcam.jpg",
         history_variant="landscape",
         history_cfg={"enabled": True, "min_interval_seconds": 0},
         captured_at=1_700_000_000,
@@ -128,17 +128,17 @@ def test_publisher_keeps_live_and_skips_history_when_disabled(tmp_path: Path, mo
     )
     src = ROOT / "tests/fixtures/sample.jpg"
     result = pub.publish_public(
-        camera_id="schellbronn",
+        camera_id="example",
         variant_name="landscape",
         local_path=src,
-        live_key="live/schellbronn-live-webcam.jpg",
+        live_key="live/example-live-webcam.jpg",
         history_variant="landscape",
         history_cfg={"enabled": False, "min_interval_seconds": 0},
         captured_at=1_700_000_000,
     )
     assert result.ok is True
     assert result.history_key is None
-    assert (tmp_path / "outbox/live/schellbronn-live-webcam.jpg").is_file()
+    assert (tmp_path / "outbox/live/example-live-webcam.jpg").is_file()
     assert list((tmp_path / "outbox/history").rglob("*.jpg")) == []
 
 

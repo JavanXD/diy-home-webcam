@@ -9,8 +9,8 @@ Fail-safe rule for the whole system: **never replace a good image with a bad/emp
 ./scripts/diagnose.sh
 
 # Remote (both services on the camera Pi)
-PI_URL=http://raspicam.local:8080 \
-PIPE_URL=http://raspicam.local:8090 \
+PI_URL=http://home-webcam.local:8080 \
+PIPE_URL=http://home-webcam.local:8090 \
   ./scripts/diagnose.sh
 ```
 

@@ -38,9 +38,9 @@ def test_default_variant_is_landscape():
 
 
 def test_output_filename_is_variant_slug():
-    assert _output_filename_for("schellbronn", "landscape", "public") == "landscape.jpg"
-    assert _output_filename_for("schellbronn", "wide", "public") == "wide.jpg"
-    assert _output_filename_for("schellbronn", "private", "private") == "private.jpg"
+    assert _output_filename_for("example", "landscape", "public") == "landscape.jpg"
+    assert _output_filename_for("example", "wide", "public") == "wide.jpg"
+    assert _output_filename_for("example", "private", "private") == "private.jpg"
 
 
 def test_publish_maps_selected_to_fixed_key_regardless_of_variant_key():
@@ -98,24 +98,24 @@ def test_publish_maps_selected_to_fixed_key_regardless_of_variant_key():
             variant_name="wide",
             visibility="public",
             publish_enabled=True,
-            variant_r2_live_key="live/schellbronn-wide-webcam.jpg",
+            variant_r2_live_key="live/example-wide-webcam.jpg",
             public_live_variant="landscape",
             fixed_live_key=FIXED,
         )
-        == "live/schellbronn-wide-webcam.jpg"
+        == "live/example-wide-webcam.jpg"
     )
 
 
 def test_selection_persists_and_rejects_private(tmp_path: Path):
-    cam_dir = tmp_path / "cameras" / "schellbronn"
+    cam_dir = tmp_path / "cameras" / "example"
     variants_dir = cam_dir / "variants"
     variants_dir.mkdir(parents=True)
     (cam_dir / "camera.yaml").write_text(
-        "id: schellbronn\ndisplay_name: Test\n"
+        "id: example\ndisplay_name: Test\n"
         "source:\n  url: http://127.0.0.1:8080/raw.jpg\n"
-        "storage:\n  original_dir: data/schellbronn/original\n"
-        "  variants_dir: data/schellbronn/variants\n"
-        "publish:\n  public_live_key: live/schellbronn-live-webcam.jpg\n"
+        "storage:\n  original_dir: data/example/original\n"
+        "  variants_dir: data/example/variants\n"
+        "publish:\n  public_live_key: live/example-live-webcam.jpg\n"
         "timezone: Europe/Berlin\n",
         encoding="utf-8",
     )
@@ -127,10 +127,10 @@ def test_selection_persists_and_rejects_private(tmp_path: Path):
         src = REPO / "cameras/example/variants" / src_name
         (variants_dir / dest_name).write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
 
-    pl = PublicLiveSelection(tmp_path, "schellbronn")
+    pl = PublicLiveSelection(tmp_path, "example")
     status = pl.status()
     assert status["live_key"] == FIXED
-    assert status["public_url_path"] == "/schellbronn-live-webcam.jpg"
+    assert status["public_url_path"] == "/example-live-webcam.jpg"
     assert status["variant"] == "landscape"
     assert status["persisted"] is False
 
@@ -138,7 +138,7 @@ def test_selection_persists_and_rejects_private(tmp_path: Path):
     assert updated["variant"] == "wide"
     assert updated["live_key"] == FIXED
     assert updated["force_publish"] is True
-    raw = json.loads((tmp_path / "data/schellbronn/public-live.json").read_text(encoding="utf-8"))
+    raw = json.loads((tmp_path / "data/example/public-live.json").read_text(encoding="utf-8"))
     assert raw["variant"] == "wide"
     assert raw["live_key"] == FIXED
 
@@ -150,7 +150,7 @@ def test_selection_persists_and_rejects_private(tmp_path: Path):
         pl.set_variant("private")
 
     # Stale private selection falls back
-    (tmp_path / "data/schellbronn/public-live.json").write_text(
+    (tmp_path / "data/example/public-live.json").write_text(
         json.dumps({"variant": "private"}) + "\n", encoding="utf-8"
     )
     assert pl.variant_name() == "landscape"

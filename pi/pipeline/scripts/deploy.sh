@@ -4,7 +4,7 @@ set -euo pipefail
 
 TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
-  echo "usage: $0 pi@raspicam.local" >&2
+  echo "usage: $0 pi@home-webcam.local" >&2
   echo "  tip: set -a && source ~/Projects/.secrets/raspicam.env && set +a" >&2
   echo "       $0 \${RASPICAM_SSH_USER}@\${RASPICAM_HOST}" >&2
   exit 1

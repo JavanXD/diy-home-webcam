@@ -16,7 +16,7 @@ sys.path.insert(0, str(ROOT))
 from app import variants_editor as vedit  # noqa: E402
 
 
-def test_list_and_get_schellbronn_variants():
+def test_list_and_get_example_variants():
     listing = vedit.list_variants(REPO, "example")
     assert listing["camera"] == "example"
     assert listing["count"] >= 3
@@ -127,14 +127,14 @@ def test_validate_crop_and_masks():
 
 
 def test_save_variant_atomic_yaml(tmp_path: Path):
-    cam_dir = tmp_path / "cameras" / "schellbronn"
+    cam_dir = tmp_path / "cameras" / "example"
     variants_dir = cam_dir / "variants"
     variants_dir.mkdir(parents=True)
     (cam_dir / "camera.yaml").write_text(
-        "id: schellbronn\ndisplay_name: Test\n"
+        "id: example\ndisplay_name: Test\n"
         "source:\n  url: http://127.0.0.1:8080/raw.jpg\n"
-        "storage:\n  original_dir: data/schellbronn/original\n"
-        "  variants_dir: data/schellbronn/variants\n"
+        "storage:\n  original_dir: data/example/original\n"
+        "  variants_dir: data/example/variants\n"
         "timezone: Europe/Berlin\n",
         encoding="utf-8",
     )
@@ -147,7 +147,7 @@ def test_save_variant_atomic_yaml(tmp_path: Path):
 
     result = vedit.save_variant(
         tmp_path,
-        "schellbronn",
+        "example",
         "landscape",
         {
             "crop": {
@@ -191,7 +191,7 @@ def test_save_variant_atomic_yaml(tmp_path: Path):
     # Output size/quality editable; filename / R2 stay locked
     sized = vedit.save_variant(
         tmp_path,
-        "schellbronn",
+        "example",
         "landscape",
         {
             "crop": reloaded["crop"],
@@ -200,7 +200,7 @@ def test_save_variant_atomic_yaml(tmp_path: Path):
             "timestamp": {"enabled": True, "position": "bottom-right", "font_size": 16},
             "site_badge": {
                 "enabled": True,
-                "site": "ferienpark-schellbronn.de",
+                "site": "example.com",
                 "temperature": True,
                 "font_size": 20,
             },
@@ -215,21 +215,21 @@ def test_save_variant_atomic_yaml(tmp_path: Path):
     assert sized["config"]["site_badge"]["font_size"] == 20
 
     with pytest.raises(ValueError, match="nothing to update"):
-        vedit.save_variant(tmp_path, "schellbronn", "landscape", {})
+        vedit.save_variant(tmp_path, "example", "landscape", {})
 
     with pytest.raises(KeyError):
-        vedit.get_variant(tmp_path, "schellbronn", "missing")
+        vedit.get_variant(tmp_path, "example", "missing")
 
 
 def _seed_camera(tmp_path: Path) -> Path:
-    cam_dir = tmp_path / "cameras" / "schellbronn"
+    cam_dir = tmp_path / "cameras" / "example"
     variants_dir = cam_dir / "variants"
     variants_dir.mkdir(parents=True)
     (cam_dir / "camera.yaml").write_text(
-        "id: schellbronn\ndisplay_name: Test\n"
+        "id: example\ndisplay_name: Test\n"
         "source:\n  url: http://127.0.0.1:8080/raw.jpg\n"
-        "storage:\n  original_dir: data/schellbronn/original\n"
-        "  variants_dir: data/schellbronn/variants\n"
+        "storage:\n  original_dir: data/example/original\n"
+        "  variants_dir: data/example/variants\n"
         "timezone: Europe/Berlin\n",
         encoding="utf-8",
     )
@@ -244,7 +244,7 @@ def test_create_variant_from_templates(tmp_path: Path):
 
     private = vedit.create_variant(
         tmp_path,
-        "schellbronn",
+        "example",
         {"name": "courtyard", "template": "private"},
     )
     assert private["meta"]["name"] == "courtyard"
@@ -259,7 +259,7 @@ def test_create_variant_from_templates(tmp_path: Path):
 
     public = vedit.create_variant(
         tmp_path,
-        "schellbronn",
+        "example",
         {"name": "plaza", "template": "landscape-public"},
     )
     assert public["meta"]["name"] == "plaza"
@@ -272,16 +272,16 @@ def test_create_variant_from_templates(tmp_path: Path):
 
     with pytest.raises(ValueError, match="already exists"):
         vedit.create_variant(
-            tmp_path, "schellbronn", {"name": "courtyard", "template": "private"}
+            tmp_path, "example", {"name": "courtyard", "template": "private"}
         )
 
     with pytest.raises(ValueError, match="name must be"):
-        vedit.create_variant(tmp_path, "schellbronn", {"name": "Bad_Name", "template": "private"})
+        vedit.create_variant(tmp_path, "example", {"name": "Bad_Name", "template": "private"})
 
     with pytest.raises(ValueError, match="template"):
-        vedit.create_variant(tmp_path, "schellbronn", {"name": "okname", "template": "wide"})
+        vedit.create_variant(tmp_path, "example", {"name": "okname", "template": "wide"})
 
-    listing = vedit.list_variants(tmp_path, "schellbronn")
+    listing = vedit.list_variants(tmp_path, "example")
     names = {v["name"] for v in listing["variants"]}
     assert {"private", "landscape", "courtyard", "plaza"} <= names
     assert "landscape-public" in listing["templates"]
@@ -293,6 +293,6 @@ def test_create_variant_rejects_filename_collision(tmp_path: Path):
     with pytest.raises(ValueError, match="filename already in use"):
         vedit.create_variant(
             tmp_path,
-            "schellbronn",
+            "example",
             {"name": "alias", "template": "private", "filename": "private.jpg"},
         )

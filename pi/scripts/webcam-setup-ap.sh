@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Start or stop the first-boot setup Wi-Fi AP (NetworkManager hotspot).
 #
-# Safety (Schellbronn / already-configured Pis):
+# Safety (already-configured Pis):
 #   - Never starts when a non-setup Wi-Fi *client* profile exists
 #   - Never starts when Wi-Fi is already associated to a home network
 #   - Never starts when ethernet has an IPv4 address

@@ -14,5 +14,5 @@ echo "==> pipeline (same host, :8090)"
 echo "==> setup Wi-Fi AP helper (no-op on already-configured Wi-Fi)"
 sudo "$ROOT/pi/scripts/install-setup-ap.sh"
 
-echo "==> Pi ready: :8080 capture, :8090 variants. Import homeassistant/packages/webcam_schellbronn.yaml into HA."
+echo "==> Pi ready: :8080 capture, :8090 variants. Import examples/homeassistant/webcam.yaml (or packages/webcam_example.yaml) into HA."
 echo "    First-boot without Imager Wi-Fi: join SSID Webcam-Setup (password webcam-setup) → http://10.42.0.1:8090/setup/ui"

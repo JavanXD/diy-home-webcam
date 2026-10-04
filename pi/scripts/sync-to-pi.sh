@@ -2,14 +2,18 @@
 # From the Mac: rsync monorepo runtime trees to the Pi (code-first sync).
 # Does not provision systemd (use pi/provision.sh on the Pi for that).
 #
-# # WARNING: cameras/ is synced with --delete. If you edited crops/masks on the Pi
+# Example-only files live under gitignored private/ with symlinks at the
+# usual paths (cameras/example, pi/host/*.env, …). This script uses
+# rsync --copy-links (-L) so the Pi gets real files, not broken symlinks.
+#
+# WARNING: cameras/ is synced with --delete. If you edited crops/masks on the Pi
 # via the Variants LAN UI (/variants/ui), pull first or you will lose those YAML edits:
-#   ./pi/scripts/pull-cameras-from-pi.sh pi@raspicam.local
+#   ./pi/scripts/pull-cameras-from-pi.sh pi@home-webcam.local
 set -euo pipefail
 
 TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
-  echo "usage: $0 pi@raspicam.local" >&2
+  echo "usage: $0 pi@home-webcam.local" >&2
   echo "  tip: set -a && source ~/Projects/.secrets/raspicam.env && set +a" >&2
   echo "       $0 \${RASPICAM_SSH_USER}@\${RASPICAM_HOST}" >&2
   exit 1
@@ -18,6 +22,15 @@ fi
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 REMOTE_ROOT="${REMOTE_ROOT:-/opt/home-webcam-pipeline}"
 
+if [[ ! -d "$REPO_ROOT/private/cameras/example" ]]; then
+  echo "error: private/ overlay missing ($REPO_ROOT/private/cameras/example)." >&2
+  echo "  Restore private/ then ./scripts/link-private.sh" >&2
+  exit 1
+fi
+if [[ ! -e "$REPO_ROOT/cameras/example/camera.yaml" ]]; then
+  echo "error: cameras/example not linked; run ./scripts/link-private.sh" >&2
+  exit 1
+fi
 
 SSH_OPTS=(-o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new)
 if [[ -n "${RASPICAM_SSH_KEY:-}" ]]; then
@@ -91,7 +104,7 @@ set -euo pipefail
 find '$REMOTE_ROOT/pi' '$REMOTE_ROOT/cameras' '$REMOTE_ROOT/docs' \\
   \\( -path '*/data' -o -path '*/data/*' -o -path '*/.venv' -o -path '*/.venv/*' \\) -prune -o \\
   -type l ! -exec test -e {} \\; -delete 2>/dev/null || true
-rm -rf '$REMOTE_ROOT/cameras/schellbronn'
+rm -rf '$REMOTE_ROOT/cameras/example'
 mkdir -p '$REMOTE_ROOT/cameras'
 OWNER="\${SUDO_USER:-pi}"
 chown "\$OWNER" '$REMOTE_ROOT/cameras' 2>/dev/null || true
@@ -101,12 +114,12 @@ EOF
   --exclude '.venv' --exclude 'data' --exclude '__pycache__' --exclude '.pytest_cache' \
   --exclude '.deploy-backup' \
   "$REPO_ROOT/pi/" "$TARGET:$REMOTE_ROOT/pi/"
-# Sync Schellbronn camera from private/ (symlink target) so the Pi always gets a directory.
-"${RSYNC[@]}" --delete "$REPO_ROOT/private/cameras/schellbronn/" \
-  "$TARGET:$REMOTE_ROOT/cameras/schellbronn/"
-# Other cameras/ entries (README) — no --delete so schellbronn stays.
+# Sync Example camera from private/ (symlink target) so the Pi always gets a directory.
+"${RSYNC[@]}" --delete "$REPO_ROOT/private/cameras/example/" \
+  "$TARGET:$REMOTE_ROOT/cameras/example/"
+# Other cameras/ entries (README) — no --delete so example stays.
 "$RSYNC_BIN" "${RSYNC_FLAGS[@]}" -e "$RSYNC_SSH" \
-  --exclude 'schellbronn' \
+  --exclude 'example' \
   "$REPO_ROOT/cameras/" "$TARGET:$REMOTE_ROOT/cameras/"
 "${RSYNC[@]}" --delete --exclude '__pycache__' --exclude '*.pyc' \
   "$REPO_ROOT/shared/" "$TARGET:$REMOTE_ROOT/shared/"

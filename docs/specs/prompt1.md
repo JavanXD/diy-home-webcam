@@ -1,4 +1,4 @@
-# Project: Webcam Schellbronn
+# Project: DIY home webcam
 
 Build a small, modular image-processing pipeline for a private home-network
 camera that provides a live view of a village, rooftops, trees, sky and a

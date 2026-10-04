@@ -506,7 +506,7 @@ def test_http_endpoints(tmp_path: Path):
             home = resp.read().decode()
         assert "Camera home" in home
         assert "<title>Webcam — Camera home</title>" in home
-        assert "Webcam Schellbronn" not in home
+        assert "Example Webcam" not in home
         assert "Overview" not in home
         assert "/debug/ui" in home
         assert "Camera status" in home
@@ -554,7 +554,7 @@ def test_http_endpoints(tmp_path: Path):
         assert "750" in home  # live preview poll ms
         assert "5 min" in home or "5&nbsp;min" in home or "300" in home
         assert "Pipeline" in home  # nav cluster label only
-        assert "ferienpark-schellbronn.de" not in home
+        assert "example.com" not in home
         assert "Public schedule" not in home
         assert "Private variant" not in home
         assert "LAN hub" not in home

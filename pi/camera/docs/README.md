@@ -54,9 +54,9 @@ Camera-only install is still `pi/camera/scripts/provision.sh`. The pipeline unit
 From your Mac (host/SSH: [pi/README.md](../../README.md) / `Notes.txt`):
 
 ```bash
-./pi/camera/scripts/deploy.sh pi@192.168.178.150
+./pi/camera/scripts/deploy.sh pi@home-webcam.local
 # Failed health checks auto-restore the previous backup
-./pi/camera/scripts/rollback.sh pi@192.168.178.150
+./pi/camera/scripts/rollback.sh pi@home-webcam.local
 ```
 
 ## Service commands
@@ -107,7 +107,7 @@ In `camera.yaml` / `/etc/webcam-camera/camera.yaml`:
 
 ```
 Host raspicam
-  HostName raspicam.local
+  HostName home-webcam.local
   User pi
   IdentityFile ~/.ssh/home-webcam_ed25519
   IdentitiesOnly yes

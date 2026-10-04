@@ -13,8 +13,8 @@ from app.camera_profile import load_camera_profile  # noqa: E402
 
 
 def test_source_url_env_override(monkeypatch):
-    monkeypatch.setenv("WEBCAM_SCHELLBRONN_SOURCE_URL", "http://10.0.0.9:8080/raw.jpg")
-    monkeypatch.setenv("WEBCAM_SCHELLBRONN_HEALTH_URL", "http://10.0.0.9:8080/health")
+    monkeypatch.setenv("WEBCAM_EXAMPLE_SOURCE_URL", "http://10.0.0.9:8080/raw.jpg")
+    monkeypatch.setenv("WEBCAM_EXAMPLE_HEALTH_URL", "http://10.0.0.9:8080/health")
     profile = load_camera_profile(REPO, "example")
     assert profile.source_url == "http://10.0.0.9:8080/raw.jpg"
     assert profile.health_url == "http://10.0.0.9:8080/health"

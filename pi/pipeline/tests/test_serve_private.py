@@ -22,20 +22,20 @@ def test_variant_jpeg_disk_failsafe_when_map_empty(tmp_path: Path):
     import shutil
 
     sample = ROOT / "tests/fixtures/sample.jpg"
-    variants_dir = tmp_path / "data" / "schellbronn" / "variants"
+    variants_dir = tmp_path / "data" / "example" / "variants"
     variants_dir.mkdir(parents=True)
     private_jpg = variants_dir / "private.jpg"
     shutil.copy(sample, private_jpg)
 
     # Minimal camera profile so load_camera_profile finds storage.variants_dir
-    cam_dir = tmp_path / "cameras" / "schellbronn"
+    cam_dir = tmp_path / "cameras" / "example"
     cam_dir.mkdir(parents=True)
     (cam_dir / "camera.yaml").write_text(
-        "id: schellbronn\n"
+        "id: example\n"
         "display_name: Test\n"
         "source:\n  url: http://127.0.0.1:8080/raw.jpg\n"
-        "storage:\n  original_dir: data/schellbronn/original\n"
-        "  variants_dir: data/schellbronn/variants\n"
+        "storage:\n  original_dir: data/example/original\n"
+        "  variants_dir: data/example/variants\n"
         "publish:\n  enabled: false\n"
         "timezone: Europe/Berlin\n",
         encoding="utf-8",
@@ -54,7 +54,7 @@ def test_variant_jpeg_disk_failsafe_when_map_empty(tmp_path: Path):
         repo_root=tmp_path,
     )
     # Intentionally empty cameras map — forces disk fail-safe path.
-    assert state.resolve_variant_path("schellbronn", "private") is None
+    assert state.resolve_variant_path("example", "private") is None
 
     handler = make_handler(state, tmp_path)
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
@@ -67,7 +67,7 @@ def test_variant_jpeg_disk_failsafe_when_map_empty(tmp_path: Path):
 
         # Hit schedule/placeholder first so nested-import shadowing would have bitten.
         with urllib.request.urlopen(
-            f"http://127.0.0.1:{port}/schedule/placeholder.jpg?camera=schellbronn"
+            f"http://127.0.0.1:{port}/schedule/placeholder.jpg?camera=example"
         ) as resp:
             assert resp.status == 200
             assert resp.read()[:2] == b"\xff\xd8"
@@ -80,7 +80,7 @@ def test_variant_jpeg_disk_failsafe_when_map_empty(tmp_path: Path):
         assert len(body) == private_jpg.stat().st_size
 
         with urllib.request.urlopen(
-            f"http://127.0.0.1:{port}/private/schellbronn.jpg"
+            f"http://127.0.0.1:{port}/private/example.jpg"
         ) as resp:
             alias = resp.read()
         assert alias == body
@@ -105,19 +105,19 @@ def test_ha_cache_bust_skips_304_and_uses_no_store(tmp_path: Path):
     import urllib.request
 
     sample = ROOT / "tests/fixtures/sample.jpg"
-    variants_dir = tmp_path / "data" / "schellbronn" / "variants"
+    variants_dir = tmp_path / "data" / "example" / "variants"
     variants_dir.mkdir(parents=True)
     private_jpg = variants_dir / "private.jpg"
     shutil.copy(sample, private_jpg)
 
-    cam_dir = tmp_path / "cameras" / "schellbronn"
+    cam_dir = tmp_path / "cameras" / "example"
     cam_dir.mkdir(parents=True)
     (cam_dir / "camera.yaml").write_text(
-        "id: schellbronn\n"
+        "id: example\n"
         "display_name: Test\n"
         "source:\n  url: http://127.0.0.1:8080/raw.jpg\n"
-        "storage:\n  original_dir: data/schellbronn/original\n"
-        "  variants_dir: data/schellbronn/variants\n"
+        "storage:\n  original_dir: data/example/original\n"
+        "  variants_dir: data/example/variants\n"
         "publish:\n  enabled: false\n"
         "timezone: Europe/Berlin\n",
         encoding="utf-8",

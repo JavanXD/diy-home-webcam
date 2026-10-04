@@ -20,7 +20,7 @@ def test_lan_title_stays_generic_even_when_camera_has_a_display_name():
     items = variant_menu_items(REPO, "example")
     html = lan_ui.page("Camera home", "<p>x</p>", active="camera", pipe_more=items)
     assert "<title>Webcam — Camera home</title>" in html
-    assert "Webcam Schellbronn" not in html
+    assert "Example Webcam" not in html
 
 
 def test_lan_ui_page_chrome_and_tokens():
@@ -89,7 +89,7 @@ def test_lan_ui_page_chrome_and_tokens():
     assert "/debug/ui" not in cam_menu
     assert "Variants UI" not in cam_menu
     assert "/schedule" not in cam_menu
-    assert "schellbronn" not in cam_menu
+    assert "example" not in cam_menu
     assert 'data-lan-port="8090"' in pipe_menu
     assert 'data-lan-path="/health"' in pipe_menu
     assert 'data-lan-path="/schedule"' in pipe_menu
@@ -98,7 +98,7 @@ def test_lan_ui_page_chrome_and_tokens():
     assert 'data-lan-path="/variants/ui"' not in pipe_menu
     assert "Variants UI" not in pipe_menu
     assert 'data-lan-path="/public-live"' in pipe_menu
-    assert "schellbronn" not in pipe_menu
+    assert "example" not in pipe_menu
     assert "/image.jpg" not in pipe_menu
     assert "/raw.jpg" not in pipe_menu
     assert 'data-lan-path="/maintenance"' not in pipe_menu
@@ -315,8 +315,8 @@ def test_pipeline_ui_strings():
     assert "is-sharp" in variants
     assert "80rem" in variants
     # Hint sits above compact Preview dry-run; large Edit crop/masks canvases are earlier
-    assert variants.index("Edit crop") < variants.index("Edit masks")
-    assert variants.index("Edit masks") < variants.index('class="muted preview-hint"')
+    assert variants.index('h-inline">Edit crop') < variants.index('h-inline">Edit masks')
+    assert variants.index('h-inline">Edit masks') < variants.index('class="muted preview-hint"')
     assert variants.index('class="muted preview-hint"') < variants.index('class="preview-secondary"')
     # Compact Preview column has no mask/crop layer (drag only on Edit stages)
     preview_col = variants[variants.index("Preview (unsaved)") : variants.index("actions-sticky")]

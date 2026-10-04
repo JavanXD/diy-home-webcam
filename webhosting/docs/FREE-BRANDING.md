@@ -16,4 +16,4 @@ The livestream **JPEG itself is not watermarked** (clean hotlink / timelapse / e
 - Landing: `site/index.html` (`.brand` chip → https://dasbollenhuthaus.de/)
 - Logo asset: `site/branding/bollenhut-watermark.png`
 - Sync: `python3 scripts/sync-bollenhut-watermark.py`
-- Public variants: `watermark.enabled: false` in `cameras/schellbronn/variants/*-public.yaml`
+- Public variants: `watermark.enabled: false` in `cameras/<id>/variants/*-public.yaml`

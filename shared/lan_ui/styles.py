@@ -856,7 +856,7 @@ img.thumb, img.preview { width: 100%; max-width: var(--preview-max); }
   background: transparent;
 }
 .preview-hint {
-  /* Full-width above dry-run Preview — Edit masks canvas sits earlier in the form. */
+  /* Full-width above dry-run Preview — Edit crop / Edit masks canvases sit earlier. */
   min-height: 2.6em;
   margin: var(--space-3) 0 var(--space-1);
   line-height: 1.35;

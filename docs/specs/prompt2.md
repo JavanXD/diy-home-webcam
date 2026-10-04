@@ -1,4 +1,4 @@
-# Project: Webcam Schellbronn — Raspberry Pi Camera Appliance
+# Project: DIY home webcam — Raspberry Pi Camera Appliance
 
 Build the complete Raspberry Pi side of the project.
 

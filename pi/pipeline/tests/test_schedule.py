@@ -7,17 +7,17 @@ from zoneinfo import ZoneInfo
 from app.schedule import PublicSchedule, sun_times
 
 
-def _seed_schellbronn(tmp_path: Path) -> None:
+def _seed_example(tmp_path: Path) -> None:
     """Solar tests opt into this place. The code default is UTC / 0,0."""
-    cam = tmp_path / "cameras" / "schellbronn"
+    cam = tmp_path / "cameras" / "example"
     cam.mkdir(parents=True, exist_ok=True)
     (cam / "camera.yaml").write_text(
-        "id: schellbronn\ntimezone: Europe/Berlin\nlocation:\n  latitude: 48.7855\n  longitude: 8.7490\n",
+        "id: example\ntimezone: Europe/Berlin\nlocation:\n  latitude: 48.7855\n  longitude: 8.7490\n",
         encoding="utf-8",
     )
 
 
-def test_sun_times_schellbronn_summer():
+def test_sun_times_example_summer():
     tz = ZoneInfo("Europe/Berlin")
     # mid-June: long day
     sunrise, sunset = sun_times(datetime(2026, 6, 21).date(), 48.7855, 8.7490, tz)
@@ -26,8 +26,8 @@ def test_sun_times_schellbronn_summer():
 
 
 def test_schedule_solar_offline_night(tmp_path: Path):
-    _seed_schellbronn(tmp_path)
-    sched = PublicSchedule(tmp_path, "schellbronn")
+    _seed_example(tmp_path)
+    sched = PublicSchedule(tmp_path, "example")
     tz = ZoneInfo("Europe/Berlin")
     # 23:00 local — after sunset window
     night = datetime(2026, 6, 21, 23, 0, tzinfo=tz)
@@ -38,8 +38,8 @@ def test_schedule_solar_offline_night(tmp_path: Path):
 
 
 def test_schedule_solar_online_day(tmp_path: Path):
-    _seed_schellbronn(tmp_path)
-    sched = PublicSchedule(tmp_path, "schellbronn")
+    _seed_example(tmp_path)
+    sched = PublicSchedule(tmp_path, "example")
     tz = ZoneInfo("Europe/Berlin")
     noon = datetime(2026, 6, 21, 12, 0, tzinfo=tz)
     status = sched.evaluate(now=noon)
@@ -58,8 +58,8 @@ def test_schedule_solar_online_day(tmp_path: Path):
 
 
 def test_schedule_status_offline_fills_back_at(tmp_path: Path):
-    _seed_schellbronn(tmp_path)
-    sched = PublicSchedule(tmp_path, "schellbronn")
+    _seed_example(tmp_path)
+    sched = PublicSchedule(tmp_path, "example")
     tz = ZoneInfo("Europe/Berlin")
     night = datetime(2026, 6, 21, 23, 0, tzinfo=tz)
     d = sched.evaluate(now=night).as_dict()
@@ -73,8 +73,8 @@ def test_schedule_status_offline_fills_back_at(tmp_path: Path):
 
 
 def test_schedule_fixed_window(tmp_path: Path):
-    _seed_schellbronn(tmp_path)
-    sched = PublicSchedule(tmp_path, "schellbronn")
+    _seed_example(tmp_path)
+    sched = PublicSchedule(tmp_path, "example")
     sched.update_config({"mode": "fixed", "fixed": {"start": "08:00", "stop": "20:00"}})
     tz = ZoneInfo("Europe/Berlin")
     assert sched.evaluate(now=datetime(2026, 1, 10, 9, 0, tzinfo=tz)).public_online is True
@@ -82,13 +82,13 @@ def test_schedule_fixed_window(tmp_path: Path):
 
 
 def test_placeholder_render(tmp_path: Path):
-    _seed_schellbronn(tmp_path)
-    sched = PublicSchedule(tmp_path, "schellbronn")
+    _seed_example(tmp_path)
+    sched = PublicSchedule(tmp_path, "example")
     status = sched.evaluate(now=datetime(2026, 1, 10, 23, 0, tzinfo=ZoneInfo("Europe/Berlin")))
     path = sched.render_public_placeholder(
         status,
         size=(800, 450),
-        site_badge="ferienpark-schellbronn.de  ·  12,4 °C",
+        site_badge="example.com  ·  12,4 °C",
     )
     data = path.read_bytes()
     assert data[:2] == b"\xff\xd8"
@@ -102,11 +102,11 @@ def test_placeholder_render(tmp_path: Path):
 
 
 def test_placeholder_clock_changes_with_minute(tmp_path: Path):
-    _seed_schellbronn(tmp_path)
+    _seed_example(tmp_path)
     """Night placeholder must not burn a multi-hour-stale clock."""
     from shared.brand_overlay import format_live_clock
 
-    sched = PublicSchedule(tmp_path, "schellbronn")
+    sched = PublicSchedule(tmp_path, "example")
     tz = ZoneInfo("Europe/Berlin")
     a = sched.evaluate(now=datetime(2026, 1, 10, 23, 0, tzinfo=tz))
     b = sched.evaluate(now=datetime(2026, 1, 10, 23, 1, tzinfo=tz))
@@ -121,7 +121,7 @@ def test_placeholder_clock_changes_with_minute(tmp_path: Path):
     assert bytes_b[:2] == b"\xff\xd8"
 
 def test_placeholder_cover_fit_no_stretch(tmp_path: Path):
-    _seed_schellbronn(tmp_path)
+    _seed_example(tmp_path)
     """Wide variant size must cover-crop 16:9 base — never stretch."""
     from PIL import Image
 
@@ -146,7 +146,7 @@ def test_placeholder_cover_fit_no_stretch(tmp_path: Path):
     out = cover_fit(src, (1600, 750))
     assert out.size == (1600, 750)
 
-    sched = PublicSchedule(tmp_path, "schellbronn")
+    sched = PublicSchedule(tmp_path, "example")
     status = sched.evaluate(now=datetime(2026, 1, 10, 23, 0, tzinfo=ZoneInfo("Europe/Berlin")))
     path = sched.render_public_placeholder(status, size=(1600, 750))
     with Image.open(path) as im:
@@ -177,8 +177,8 @@ def test_new_schedule_reads_camera_yaml_location(tmp_path: Path):
 
 
 def test_schedule_update_ignores_location_patch(tmp_path: Path):
-    _seed_schellbronn(tmp_path)
-    sched = PublicSchedule(tmp_path, "schellbronn")
+    _seed_example(tmp_path)
+    sched = PublicSchedule(tmp_path, "example")
     before = sched.get_config()
     out = sched.update_config(
         {
@@ -193,7 +193,7 @@ def test_schedule_update_ignores_location_patch(tmp_path: Path):
     assert out["latitude"] == before["latitude"]
     assert out["longitude"] == before["longitude"]
     assert out["timezone"] == "Europe/Berlin"
-    stored = (tmp_path / "data" / "schedule" / "schellbronn" / "config.json").read_text()
+    stored = (tmp_path / "data" / "schedule" / "example" / "config.json").read_text()
     assert "latitude" not in stored
     assert "longitude" not in stored
     assert "timezone" not in stored

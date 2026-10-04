@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install nginx 80/443 → :8080 HTTP redirects (Webcam Schellbronn / raspicam).
+# Install nginx 80/443 → :8080 HTTP redirects (LAN camera UI).
 # Code first: config in pi/host/nginx/webcam-port-redirect.conf
 set -euo pipefail
 
@@ -33,11 +33,11 @@ mkdir -p "$SSL_DIR"
 CERT="$SSL_DIR/raspicam-local.crt"
 KEY="$SSL_DIR/raspicam-local.key"
 if [[ ! -f "$CERT" || ! -f "$KEY" ]]; then
-  echo "==> self-signed cert for raspicam.local (LAN only)"
+  echo "==> self-signed cert for home-webcam.local (LAN only)"
   openssl req -x509 -nodes -newkey rsa:2048 -days 825 \
     -keyout "$KEY" -out "$CERT" \
-    -subj "/CN=raspicam.local/O=Webcam Schellbronn/OU=LAN" \
-    -addext "subjectAltName=DNS:raspicam.local,DNS:raspicam,IP:127.0.0.1"
+    -subj "/CN=home-webcam.local/O=Home webcam/OU=LAN" \
+    -addext "subjectAltName=DNS:home-webcam.local,DNS:raspicam,IP:127.0.0.1"
   chmod 640 "$KEY"
   chown root:root "$CERT" "$KEY"
 fi
@@ -57,13 +57,13 @@ systemctl enable --now nginx
 systemctl reload nginx
 
 echo "==> smoke"
-code80="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: raspicam.local' http://127.0.0.1/)"
-loc80="$(curl -sS -o /dev/null -w '%{redirect_url}' -H 'Host: raspicam.local' http://127.0.0.1/)"
-code443="$(curl -skS -o /dev/null -w '%{http_code}' -H 'Host: raspicam.local' https://127.0.0.1/)"
-loc443="$(curl -skS -o /dev/null -w '%{redirect_url}' -H 'Host: raspicam.local' https://127.0.0.1/)"
+code80="$(curl -sS -o /dev/null -w '%{http_code}' -H 'Host: home-webcam.local' http://127.0.0.1/)"
+loc80="$(curl -sS -o /dev/null -w '%{redirect_url}' -H 'Host: home-webcam.local' http://127.0.0.1/)"
+code443="$(curl -skS -o /dev/null -w '%{http_code}' -H 'Host: home-webcam.local' https://127.0.0.1/)"
+loc443="$(curl -skS -o /dev/null -w '%{redirect_url}' -H 'Host: home-webcam.local' https://127.0.0.1/)"
 echo "  http  → $code80 $loc80"
 echo "  https → $code443 $loc443"
 if [[ "$code80" != "301" || "$code443" != "301" ]]; then
   echo "WARN: expected 301 from :80 and :443" >&2
 fi
-echo "==> apply-http-redirect done (open http://raspicam.local/ or https://raspicam.local/)"
+echo "==> apply-http-redirect done (open http://home-webcam.local/ or https://home-webcam.local/)"

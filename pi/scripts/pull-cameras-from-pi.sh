@@ -6,7 +6,7 @@ set -euo pipefail
 
 TARGET="${1:-}"
 if [[ -z "$TARGET" ]]; then
-  echo "usage: $0 pi@raspicam.local" >&2
+  echo "usage: $0 pi@home-webcam.local" >&2
   echo "  tip: set -a && source ~/Projects/.secrets/raspicam.env && set +a" >&2
   echo "       $0 \${RASPICAM_SSH_USER}@\${RASPICAM_HOST}" >&2
   exit 1
@@ -22,8 +22,8 @@ if [[ -n "${RASPICAM_SSH_KEY:-}" ]]; then
 fi
 RSYNC_SSH="ssh ${SSH_OPTS[*]}"
 
-if [[ -L "$REPO_ROOT/cameras/schellbronn" ]]; then
-  echo "==> note: cameras/schellbronn → private/ (pull writes through the symlink)"
+if [[ -L "$REPO_ROOT/cameras/example" ]]; then
+  echo "==> note: cameras/example → private/ (pull writes through the symlink)"
 fi
 
 echo "==> pull $TARGET:$REMOTE_ROOT/cameras/ → $REPO_ROOT/cameras/"
@@ -32,4 +32,4 @@ rsync -az -e "$RSYNC_SSH" \
   --exclude '.tmp' --exclude '*.yaml.tmp' \
   "$TARGET:$REMOTE_ROOT/cameras/" "$REPO_ROOT/cameras/"
 
-echo "==> pull ok. Schellbronn YAML lands in private/cameras/ (gitignored)."
+echo "==> pull ok. Example YAML lands in private/cameras/ (gitignored)."

@@ -4,7 +4,7 @@
 Source (prefer in order):
   1. --source PATH
   2. PLACEHOLDER_PHOTO_SOURCE env
-  3. pi/scripts/assets/schellbronn-forest-source.jpg (vendored landscape crop)
+  3. pi/scripts/assets/forest-source.jpg (vendored landscape crop; legacy filenames accepted)
   4. ~/Projects/Ferienhaus/docs/photos/gallery-forest.jpg (gallery master)
 
 Outputs:
@@ -48,7 +48,17 @@ from shared.brand_overlay import (  # noqa: E402
 )
 
 ASSETS = Path(__file__).resolve().parent / "assets"
-VENDOR_SOURCE = ASSETS / "schellbronn-forest-source.jpg"
+
+
+def _vendor_source() -> Path:
+    for name in ("forest-source.jpg", "forest-source.jpg"):  # noqa: site legacy
+        candidate = ASSETS / name
+        if candidate.is_file():
+            return candidate
+    return ASSETS / "forest-source.jpg"
+
+
+VENDOR_SOURCE = _vendor_source()
 FERIENHAUS_MASTER = (
     Path.home() / "Projects/Ferienhaus/docs/photos/gallery-forest.jpg"
 )
@@ -113,7 +123,7 @@ def make_vendor_source(master: Path) -> Path:
     _save_jpeg(crop, VENDOR_SOURCE, quality=92)
     source_txt = ASSETS / "SOURCE.txt"
     source_txt.write_text(
-        "Schellbronn forest placeholder source\n"
+        "Forest placeholder source\n"
         "=====================================\n"
         "Master: Ferienhaus/docs/photos/gallery-forest.jpg\n"
         "  (dasbollenhuthaus.de gallery key \"forest\")\n"
@@ -172,7 +182,7 @@ def main() -> int:
     parser.add_argument(
         "--refresh-vendor",
         action="store_true",
-        help="Rebuild pi/scripts/assets/schellbronn-forest-source.jpg from Ferienhaus master / --source",
+        help="Rebuild pi/scripts/assets forest source JPEG from --source",
     )
     args = parser.parse_args()
 

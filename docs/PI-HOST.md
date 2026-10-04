@@ -53,10 +53,10 @@ sudo ./pi/scripts/verify-host.sh
 ## Day-2 app deploy (unchanged)
 
 ```bash
-./pi/camera/scripts/deploy.sh pi@192.168.178.150
-./pi/pipeline/scripts/deploy.sh pi@192.168.178.150
-# or full tree: ./pi/scripts/sync-to-pi.sh pi@192.168.178.150
-# (prefer RASPICAM_HOST=192.168.178.150; raspicam.local optional)
+./pi/camera/scripts/deploy.sh pi@home-webcam.local
+./pi/pipeline/scripts/deploy.sh pi@home-webcam.local
+# or full tree: ./pi/scripts/sync-to-pi.sh pi@home-webcam.local
+# (prefer RASPICAM_HOST=home-webcam.local; home-webcam.local optional)
 ```
 
 ## Runtime data ownership (`webcam`)
@@ -78,7 +78,7 @@ sudo /opt/home-webcam-pipeline/pi/scripts/fix-data-perms.sh
 # `./pi/scripts/sync-to-pi.sh` runs this automatically after rsync
 ```
 
-## LAN port redirect (`http(s)://192.168.178.150/` or `raspicam.local/` → `:8080`)
+## LAN port redirect (`http(s)://home-webcam.local/` or `home-webcam.local/` → `:8080`)
 
 nginx returns **301** to `http://<host>:8080…` (camera appliance). Config: `pi/host/nginx/webcam-port-redirect.conf`. Canonical client URL: WLAN `.150`.
 
@@ -129,7 +129,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 
 | Unit / stack | Why leave on |
 |--------------|--------------|
-| `avahi-daemon` | `raspicam.local` mDNS (optional convenience) |
+| `avahi-daemon` | `home-webcam.local` mDNS (optional convenience) |
 | `NetworkManager` + `wpa_supplicant` | WLAN `.150` (canonical); eth `.151` only if cable plugged in |
 | `ssh`, `nginx`, `webcam-camera`, `webcam-pipeline` | Appliance core |
 | `systemd-timesyncd` | Clock for timestamps / solar schedule |
@@ -165,7 +165,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 
 | Change | Default | Why |
 |--------|---------|-----|
-| IPv4 method | `auto` (DHCP) on eth + wlan | Portable across LANs; Schellbronn Fritz reservation: WLAN `.150` (canonical); eth `.151` only if cable plugged in |
+| IPv4 method | `auto` (DHCP) on eth + wlan | Portable across LANs; prefer a router DHCP reservation for a stable WLAN IP |
 | DNS | Cloudflare `1.1.1.1` / `1.0.0.1` (+ IPv6) | Predictable internet DNS when relocating; `IGNORE_AUTO_DNS=yes` |
 | WiFi autoconnect | yes, priority 10, route metric 100 | Day-to-day is wifi-only (cable unplugged) |
 | Ethernet | autoconnect yes, priority 5, metric 300 | Cable optional; unplugged eth must not block boot |
@@ -175,7 +175,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 
 **Setup AP (DIY first-boot):** `pi/scripts/webcam-setup-ap.sh` + `webcam-setup-ap.service` start SSID `Webcam-Setup` only when **no** home Wi-Fi client profile exists, Wi-Fi is not associated, and ethernet has no IPv4. Configured boards keep working and do not enter AP mode. Status: `sudo …/webcam-setup-ap.sh status`. Disable: `sudo touch /etc/webcam-pipeline/setup-ap.disabled`. Phone flow: [docs/diy/BUILD.md](diy/BUILD.md).
 
-**Reachability:** prefer `192.168.178.150`. `raspicam.local` (Avahi) is optional convenience and does not depend on Cloudflare DNS. DIY image hostname is `home-webcam`.
+**Reachability:** use the Pi’s LAN IP or mDNS (`home-webcam.local` on the DIY image; ops hosts may use a different hostname). Avahi is optional and does not depend on Cloudflare DNS.
 
 **systemd:** `webcam-camera` / `webcam-pipeline` use `Wants=network-online.target` (soft). With `may-fail=yes` on eth, wifi alone satisfies wait-online — no unit rewrite required.
 
@@ -185,7 +185,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 2. NetworkManager autoconnects saved WiFi → DHCP → DNS (Fritz → `.150`).
 3. `network-online.target` (~seconds after wifi).
 4. `webcam-camera` → `webcam-pipeline` → nginx / avahi.
-5. LAN UI: `http://192.168.178.150:8080/` (`raspicam.local` optional). Host uptime on Camera / Pipeline home from `/health` (`system_uptime_seconds`).
+5. LAN UI: `http://home-webcam.local:8080/` (`home-webcam.local` optional). Host uptime on Camera / Pipeline home from `/health` (`system_uptime_seconds`).
 
 ### When moving house / network
 
