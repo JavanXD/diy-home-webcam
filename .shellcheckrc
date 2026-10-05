@@ -1,4 +1,6 @@
 # Deploy helpers intentionally expand heredocs on the client (unquoted EOF).
 disable=SC2087
+# Optional-arg helpers sourced across scripts (seed overrides); call sites vary by file.
+disable=SC2120
 # Sourced env files are operator-local paths; scripts already mark source=/dev/null.
 external-sources=true

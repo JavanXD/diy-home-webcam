@@ -48,10 +48,13 @@ webcam_derive_secret() {
     | head -c "$_WEBCAM_CRED_LEN"
 }
 
+# Optional $1 seed override for callers/tests; default path uses board identity.
+# shellcheck disable=SC2120
 webcam_derive_setup_ap_psk() {
   webcam_derive_secret "webcam-setup-ap-v1" "${1:-}"
 }
 
+# shellcheck disable=SC2120
 webcam_derive_ssh_password() {
   webcam_derive_secret "webcam-ssh-v1" "${1:-}"
 }
