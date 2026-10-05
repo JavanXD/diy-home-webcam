@@ -33,19 +33,20 @@ HQ camera on a tall stand, Pi 5 in the official case, CSI flex to the sill. Crop
 
 On Variants (`:8090/variants/ui`), drag a **cyan** rectangle on the full camera frame to set the crop (writes `crop` LTRB in YAML; output still cover-fits without stretching). Neighbor windows get **yellow** rectangles on the served preview — blur, pixelate, or black. Labels stay in YAML (not drawn on the JPEG). Preview, then Save.
 
-<img src="docs/diy/images/lan-variants-masks.png" alt="Variants LAN UI — Edit masks" width="360" />
+<img src="docs/diy/images/lan-variants-crop.jpg" alt="Variants LAN UI — Edit crop" width="360" />
+<img src="docs/diy/images/lan-variants-masks.jpg" alt="Variants LAN UI — Edit masks" width="360" />
 
 ### Focus meter (sharpness score)
 
 Manual CS lenses need a real focus aid. Camera home draws a **draggable box** on the raw preview (`/raw.jpg`). The score is the **variance of a Laplacian** on that region after a downscale to ≤480×320 — higher means crisper edges. Yellow arrow: keep turning the focus ring. Amber: turn back. Green check: near the recent peak. The published JPEG is unchanged; software does not move the lens.
 
-<img src="docs/diy/images/lan-camera-home.png" alt="Camera home — live preview and focus meter" width="360" />
+<img src="docs/diy/images/lan-camera-home.jpg" alt="Camera home — live preview and focus meter" width="360" />
 
 ### Solar schedule for the public stream
 
 Public live follows sunrise/sunset (with offsets), fixed clock times, or always-on. Night uploads a placeholder; the private LAN JPEG stays live.
 
-<img src="docs/diy/images/lan-schedule.png" alt="Schedule LAN UI — solar mode" width="360" />
+<img src="docs/diy/images/lan-schedule.jpg" alt="Schedule LAN UI — solar mode" width="360" />
 
 ### Also worth knowing
 
@@ -53,6 +54,8 @@ Public live follows sunrise/sunset (with offsets), fixed clock times, or always-
 - **Wartungsbild** — maintenance placeholder for the public livestream while capture keeps running; private stays on raw
 - **S3-compatible publish** — Cloudflare R2 preset, custom S3 (MinIO / AWS / Wasabi / B2), local outbox, or off — public object URL / hotlink without a Worker; branded Worker page optional — Setup UI + [docs/diy/PUBLISH.md](docs/diy/PUBLISH.md)
 - **Find the Pi after setup AP** — Setup UI shows hostname, `*.local`, and current / last LAN IPv4 (Android often needs the IP, not mDNS)
+
+<img src="docs/diy/images/lan-setup-find-pi.jpg" alt="Setup UI — Find this Pi" width="360" />
 - **Site badge + temperature** — cream burn-in (hostname · outdoor °C) on public frames
 - **Cover-fit output** — visual crop + YAML crop scale into width×height without stretching
 - **Home Assistant** — YAML-only package; poll the private LAN JPEG
@@ -73,7 +76,7 @@ make test
 
 Parts and flash steps: [docs/diy/SHOPPING-LIST.md](docs/diy/SHOPPING-LIST.md) and [docs/diy/BUILD.md](docs/diy/BUILD.md).
 
-**Preferred:** download `home-webcam-*.img.xz` from [Releases](https://github.com/JavanXD/diy-home-webcam/releases) → flash → boot → join home Wi-Fi (or `Webcam-Setup` AP) → open `http://home-webcam.local:8080/`.
+**Preferred:** flashable image from the **Build Pi image** workflow → boot → join home Wi-Fi (or `Webcam-Setup` AP) → open `http://home-webcam.local:8080/`.
 
 ```mermaid
 flowchart TD

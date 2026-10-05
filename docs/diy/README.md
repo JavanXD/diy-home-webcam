@@ -57,9 +57,11 @@ Files live in [`images/`](images/). Prefer LAN UI screenshots over the public we
 
 | File | Role |
 |------|------|
-| `images/lan-variants-masks.png` | Root README — Edit masks |
-| `images/lan-camera-home.png` | Root README — live preview + focus meter |
-| `images/lan-schedule.png` | Root README — solar schedule |
+| `images/lan-variants-crop.jpg` | Root README — Edit crop (cyan box, daytime) |
+| `images/lan-variants-masks.jpg` | Root README — Edit masks (yellow boxes, daytime) |
+| `images/lan-camera-home.jpg` | Root README — live preview + focus meter |
+| `images/lan-schedule.jpg` | Root README — solar schedule (public ONLINE) |
+| `images/lan-setup-find-pi.jpg` | Root README — Find this Pi after setup AP |
 | `images/pi-camera-assembly.jpg` | HQ + 16 mm on stand at the window (close-up) |
 | `images/pi-full-setup.jpg` | Shelf: Pi in official case + tall stand + CSI |
 | `images/pi-nvme-hat-sd.jpg` | Parts flat-lay: case open, M.2 HAT+ Compact, NVMe, microSD |
