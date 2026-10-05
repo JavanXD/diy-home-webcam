@@ -22,11 +22,11 @@ concurrency:
 jobs:
   build:
     name: pi-gen Lite image
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Free disk space
         run: |
@@ -43,7 +43,7 @@ jobs:
           ls -l /proc/sys/fs/binfmt_misc/qemu-aarch64* 2>/dev/null || true
 
       - name: Cache pi-gen work
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: image/pi-gen/work
           key: pigen-work-${{ runner.os }}-${{ hashFiles('image/config', 'image/stage-webcam/**', 'pi/host/setup-ap.env') }}
@@ -73,7 +73,7 @@ jobs:
           ls -lh "$img"
 
       - name: Upload image artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: home-webcam-pi-image
           path: ${{ steps.artifact.outputs.path }}
@@ -82,7 +82,7 @@ jobs:
 
       - name: Attach image to release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ${{ steps.artifact.outputs.path }}
         env:
