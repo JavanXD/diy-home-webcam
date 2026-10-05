@@ -51,6 +51,10 @@ Binding to `0.0.0.0` is intentional so the setup AP gateway (`10.42.0.1`) and ev
 6. **Privacy masks before publish** — Public variants ship with placeholder rectangles. Re-check after the camera moves ([privacy-zones skill](../../.cursor/skills/privacy-zones/SKILL.md) on the ops checkout).
 7. **Guest / IoT network** — Optional but good: put the webcam on a segment that cannot reach your PCs, and that the internet cannot initiate into.
 
+## CI security scanners
+
+The DIY repo’s GitHub Actions **CI** includes a **Security scanners** job: gitleaks, Bandit, pip-audit, ShellCheck, actionlint, and `npm audit` on `webhosting/`. Free OSS checks only — not CRA certification.
+
 ## Intentionally not shipped
 
 - **LAN login / basic auth** on `:8080` / `:8090` — decided against; network trust is the control.

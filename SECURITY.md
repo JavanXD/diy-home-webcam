@@ -40,6 +40,10 @@ Do not port-forward `:8080` or `:8090` to the internet. The maintenance switch a
 
 **DIY threat model, SSH, setup AP, and hardening checklist:** [docs/diy/SECURITY.md](docs/diy/SECURITY.md).
 
+## CI security scanners
+
+GitHub Actions **CI** runs a **Security scanners** job on relevant paths: gitleaks (secrets), Bandit (Python), pip-audit (Python deps), ShellCheck (shell), actionlint (workflow YAML), and `npm audit` (webhosting). These are free OSS checks for this repo — not a CRA conformity assessment.
+
 ## Secrets
 
 R2 credentials belong in `/etc/webcam-pipeline/env` on the Pi (mode `640`, owner `root`, group `webcam`). The template is [`examples/pi/r2.env`](examples/pi/r2.env). Never commit keys, SSH private keys, or Wi-Fi PSKs. The Setup UI reports whether a secret is set; it never returns the secret value.

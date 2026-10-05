@@ -1,0 +1,21 @@
+# Bandit config for CI (fail on medium+ after skips).
+# Intentional / documented appliance patterns and HTML false positives.
+skips:
+  # LAN UI binds 0.0.0.0 by design (setup AP + home network).
+  - B104
+  # 0o660 on /etc/webcam-pipeline/env is intentional (root:webcam group read).
+  - B103
+  # HTML/JS f-strings trip SQL heuristics (schedule/variants UI).
+  - B608
+  # subprocess is used for nmcli/systemctl with fixed arg lists (no shell=True).
+  - B404
+  - B603
+  - B607
+  # assert used in tests only when scanned; keep quiet if any slip in.
+  - B101
+
+exclude_dirs:
+  - tests
+  - .venv
+  - node_modules
+  - private

@@ -1,0 +1,15 @@
+# Gitleaks config — allow known test fixtures (not real secrets).
+title = "home-webcam-pipeline"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Unit-test Setup AP password fixtures (not live credentials)"
+paths = [
+  '''(^|/)pi/pipeline/tests/test_setup_ap\.py$''',
+]
+regexTarget = "secret"
+regexes = [
+  '''abcd1234efgh5678''',
+]

@@ -1,0 +1,4 @@
+# Deploy helpers intentionally expand heredocs on the client (unquoted EOF).
+disable=SC2087
+# Sourced env files are operator-local paths; scripts already mark source=/dev/null.
+external-sources=true

@@ -97,12 +97,15 @@ class WeatherCache:
             return WeatherSnapshot(temp_c=temp, fetched_at=now, source="live")
 
     def _fetch_temp_c(self) -> float:
+        url = (self.url or "").strip()
+        if not (url.startswith("http://") or url.startswith("https://")):
+            raise ValueError("weather URL must be http:// or https://")
         req = urllib.request.Request(
-            self.url,
+            url,
             headers={"Accept": "application/json", "User-Agent": "home-webcam-pipeline/weather"},
             method="GET",
         )
-        with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:
+        with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:  # nosec B310
             raw = resp.read()
         data = json.loads(raw.decode("utf-8"))
         current = data.get("current") if isinstance(data, dict) else None

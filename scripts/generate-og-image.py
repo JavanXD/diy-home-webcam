@@ -112,7 +112,7 @@ def text_bbox(draw: ImageDraw.ImageDraw, text: str, font) -> tuple[int, int, int
 
 def load_source(source: str) -> Image.Image:
     if source.startswith("http://") or source.startswith("https://"):
-        with urllib.request.urlopen(source, timeout=60) as resp:  # noqa: S310
+        with urllib.request.urlopen(source, timeout=60) as resp:  # noqa: S310  # nosec B310
             data = resp.read()
         return Image.open(io.BytesIO(data)).convert("RGB")
     path = Path(source).expanduser()

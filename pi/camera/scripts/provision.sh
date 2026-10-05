@@ -68,9 +68,16 @@ curl -fsS -o /tmp/webcam-provision-image.jpg "http://127.0.0.1:8080/raw.jpg" || 
   sudo journalctl -u webcam-camera -n 50 --no-pager
   exit 1
 }
-python3 - <<'PY'
-import json
-h=json.load(open("/dev/stdin"))
-print("provision health:", h.get("status"), "backend=", h.get("backend"), "model=", h.get("camera_model"))
-PY <<< "$(curl -fsS http://127.0.0.1:8080/health)"
+curl -fsS http://127.0.0.1:8080/health | python3 -c '
+import json, sys
+h = json.load(sys.stdin)
+print(
+    "provision health:",
+    h.get("status"),
+    "backend=",
+    h.get("backend"),
+    "model=",
+    h.get("camera_model"),
+)
+'
 echo "==> camera provision complete"

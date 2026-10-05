@@ -177,7 +177,7 @@ do_start() {
 
   nmcli connection up "$SETUP_AP_CONNECTION"
   start_captive
-  log "AP up. Join Wi-Fi “$SETUP_AP_SSID” with the password from webcam-setup.txt"
+  log "AP up. Join Wi-Fi \"$SETUP_AP_SSID\" with the password from webcam-setup.txt"
   log "Setup UI: http://${SETUP_AP_GATEWAY}:8090/setup/ui"
 }
 

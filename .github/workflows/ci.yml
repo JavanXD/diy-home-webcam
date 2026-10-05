@@ -7,14 +7,30 @@ on:
       - "scripts/**"
       - "cameras/**"
       - "shared/**"
-      - ".github/workflows/ci.yml"
+      - "image/**"
+      - "webhosting/package.json"
+      - "webhosting/package-lock.json"
+      - ".github/workflows/**"
+      - ".github/gitleaks.toml"
+      - ".bandit"
+      - ".shellcheckrc"
+      - "SECURITY.md"
+      - "docs/diy/SECURITY.md"
   pull_request:
     paths:
       - "pi/**"
       - "scripts/**"
       - "cameras/**"
       - "shared/**"
-      - ".github/workflows/ci.yml"
+      - "image/**"
+      - "webhosting/package.json"
+      - "webhosting/package-lock.json"
+      - ".github/workflows/**"
+      - ".github/gitleaks.toml"
+      - ".bandit"
+      - ".shellcheckrc"
+      - "SECURITY.md"
+      - "docs/diy/SECURITY.md"
   workflow_dispatch:
 
 permissions:
@@ -95,3 +111,68 @@ jobs:
           PY
           python scripts/make-timelapse.py -i /tmp/tl-in -o /tmp/tl-out/t.gif --delay-ms 100
           test -s /tmp/tl-out/t.gif
+
+  security:
+    name: Security scanners
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks + actionlint + shellcheck
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          set -euo pipefail
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          sudo mv -f ./actionlint /usr/local/bin/actionlint
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+
+      - name: Gitleaks (secrets)
+        run: gitleaks detect --source . --redact --config .github/gitleaks.toml
+
+      - name: Actionlint (workflow YAML)
+        run: actionlint -color
+
+      - name: ShellCheck
+        run: |
+          set -euo pipefail
+          find image pi/scripts pi/camera/scripts pi/pipeline/scripts scripts \
+            -type f -name '*.sh' -print0 \
+            | xargs -0 -r shellcheck -S warning
+          shellcheck -S warning pi/provision.sh
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bandit (Python SAST)
+        run: |
+          python -m pip install -q "bandit[toml]>=1.7"
+          bandit -r pi/camera/app pi/pipeline/app shared scripts \
+            -c .bandit \
+            -ll \
+            -f txt
+
+      - name: pip-audit (Python deps)
+        run: |
+          python -m pip install -q pip-audit
+          pip-audit -r pi/camera/requirements.txt
+          pip-audit -r pi/pipeline/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: webhosting/package-lock.json
+
+      - name: npm audit (webhosting)
+        working-directory: webhosting
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=high
