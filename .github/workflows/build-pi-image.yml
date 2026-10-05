@@ -52,8 +52,10 @@ jobs:
 
       - name: Build image (pi-gen docker)
         run: |
-          chmod +x image/build-with-pi-gen.sh image/stage-webcam/00-webcam/01-run.sh
-          chmod +x image/first-boot/webcam-image-first-boot.sh
+          chmod +x image/build-with-pi-gen.sh \
+            image/stage-webcam/prerun.sh \
+            image/stage-webcam/00-webcam/01-run.sh \
+            image/first-boot/webcam-image-first-boot.sh
           ./image/build-with-pi-gen.sh
 
       - name: Locate artifact
