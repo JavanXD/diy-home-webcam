@@ -12,7 +12,7 @@ Practical DIY alignment with CRA / radio IoT expectations — **not** certificat
 |------|----------------|
 | No shared universal default password | Setup AP PSK unique per board (serial / machine-id). Find it in `/boot/firmware/webcam-setup.txt` after flash, or on Setup UI while connected to `Webcam-Setup`. |
 | Vulnerability disclosure | Private GitHub security advisory only ([new advisory](https://github.com/JavanXD/diy-home-webcam/security/advisories/new)). |
-| Updates | Pull/sync + deploy, or re-flash Releases / rebuild image; keep Debian packages updated. DIY project — no commercial support SLA. |
+| Updates | **Appliance code:** opt-in overnight check on Pipeline home → Updates (public `diy-home-webcam`); notify + manual Apply. Or re-flash Releases / rebuild image. **OS packages:** `apt` separately (not the overnight checkbox). DIY project — no commercial support SLA. |
 | Secure defaults | AP off after join; prefer Imager SSH **public key**; password SSH off when keys exist; unique `pi` password on the boot card for emergency console. |
 | No mandatory LAN login | Trusted home network is the boundary for `:8080` / `:8090`. |
 
@@ -47,7 +47,9 @@ Binding to `0.0.0.0` is intentional so the setup AP gateway (`10.42.0.1`) and ev
 4. **After joining home Wi‑Fi** — The Pi tears down `Webcam-Setup` and will not start it again while a home Wi‑Fi profile exists. To force “never AP” (even if you delete Wi‑Fi profiles):  
    `sudo touch /etc/webcam-pipeline/setup-ap.disabled`  
    A successful Setup join also writes `/var/lib/webcam-pipeline/setup-ap.disabled` (same effect for the boot script).
-5. **Keep the Pi updated** — `sudo apt update && sudo apt full-upgrade` on a schedule you trust; reboot when the kernel asks. Pull newer appliance code or re-flash when you care about fixes.
+5. **Keep the Pi updated** — Two channels:
+   - **Appliance code** — On `:8090/` → **Updates**, optionally enable **Check for updates overnight** (default off). Around 03:00 local the Pi compares against public [`JavanXD/diy-home-webcam`](https://github.com/JavanXD/diy-home-webcam) (`main`). When an update is available, use **Apply update** (syncs code under `/opt/home-webcam-pipeline`, restarts webcam services). It does **not** overwrite `cameras/` YAML, runtime `data/`, or `/etc/webcam-*/env` secrets. Or re-flash a newer Release image.
+   - **OS packages** — `sudo apt update && sudo apt full-upgrade` on a schedule you trust; reboot when the kernel asks. (Separate from the overnight checkbox; enabling `unattended-upgrades` on the image is still a hardening TODO.)
 6. **Privacy masks before publish** — Public variants ship with placeholder rectangles. Re-check after the camera moves ([privacy-zones skill](../../.cursor/skills/privacy-zones/SKILL.md) on the ops checkout).
 7. **Guest / IoT network** — Optional but good: put the webcam on a segment that cannot reach your PCs, and that the internet cannot initiate into.
 

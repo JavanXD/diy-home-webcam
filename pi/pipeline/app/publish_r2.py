@@ -4,6 +4,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -188,7 +189,7 @@ class Publisher:
 
         key = live_key or f"live/{camera_id}-{variant_name}.jpg"
         try:
-            self._put(key, local_path)
+            self._put(key, local_path, captured_at=captured_at)
         except Exception as exc:  # noqa: BLE001 — do not crash pipeline
             msg = f"live upload failed key={key}: {exc}"
             log.error("[publish] %s", msg)
@@ -218,7 +219,7 @@ class Publisher:
                 stamp = time.strftime("%Y/%m/%d/%H%M%S", time.gmtime(captured_at))
                 history_key = f"history/{camera_id}/{history_variant or variant_name}/{stamp}.jpg"
                 try:
-                    self._put(history_key, local_path)
+                    self._put(history_key, local_path, captured_at=captured_at)
                     self._last_history_at[hist_id] = now
                     log.info("[publish] history ok %s", history_key)
                 except Exception as exc:  # noqa: BLE001
@@ -238,9 +239,20 @@ class Publisher:
             detail=f"published via {self.backend}",
         )
 
-    def _put(self, key: str, path: Path) -> None:
+    def _put(self, key: str, path: Path, *, captured_at: float | None = None) -> None:
         if self.backend == "s3" and self._s3 is not None:
-            extra = {"ContentType": "image/jpeg", "CacheControl": "public, max-age=60"}
+            # customMetadata → Worker X-Webcam-Uploaded-At / Last-Modified for public UI.
+            meta: dict[str, str] = {}
+            if captured_at is not None and captured_at > 0:
+                meta["captured-at"] = datetime.fromtimestamp(
+                    captured_at, tz=timezone.utc
+                ).strftime("%Y-%m-%dT%H:%M:%SZ")
+            extra: dict[str, Any] = {
+                "ContentType": "image/jpeg",
+                "CacheControl": "public, max-age=60",
+            }
+            if meta:
+                extra["Metadata"] = meta
             self._s3.upload_file(str(path), self.bucket, key, ExtraArgs=extra)
             log.info("[publish] uploaded s3://%s/%s (%s bytes)", self.bucket, key, path.stat().st_size)
             return

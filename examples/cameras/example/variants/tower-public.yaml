@@ -6,10 +6,10 @@ description: >-
 
 crop:
   mode: arbitrary
-  left: 0.565
-  top: 0.22
-  right: 0.723
-  bottom: 0.50
+  left: 0.572
+  top: 0.210
+  right: 0.724
+  bottom: 0.538
   aspect_ratio: "9:16"
 
 output:

@@ -35,6 +35,13 @@ from .system_ops import (
     schedule_power,
     schedule_restart_services,
 )
+from .updates import (
+    UpdatesError,
+    run_check,
+    schedule_apply,
+    set_check_overnight,
+    status as updates_status,
+)
 from .state import PipelineState
 from .weather import DEFAULT_WEATHER_URL, get_weather_cache
 from . import variants_editor as vedit
@@ -49,6 +56,160 @@ _SERVED_PREVIEW_W = 1440
 
 
 def _pipe_home_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
+    updates_card = f"""
+  {lan_ui.banner_slot("upd-msg")}
+  {lan_ui.status_placeholder("upd-status", "Loading update status…")}
+  <dl class="debug-grid" id="upd-grid"></dl>
+  <label class="inline"><input type="checkbox" id="upd-overnight"> Check for updates overnight</label>
+  <p class="field-help">
+    Opt-in (off by default). Around 03:00 local the Pi asks GitHub if newer appliance code is on
+    <code>diy-home-webcam</code> (<code>main</code>). This does <strong>not</strong> install anything by itself,
+    and it does not run <code>apt</code>. Ops Pis that sync from a private checkout should leave this off.
+  </p>
+  {lan_ui.actions_bar(
+      '<button type="button" id="upd-check" class="ghost">Check now</button>',
+      '<button type="button" id="upd-apply" class="primary" disabled>Apply update</button>',
+  )}
+  {lan_ui.stale_hint("upd-updated")}
+<script>
+(function () {{
+  function row(dl, k, v) {{
+    if (v === undefined || v === null || v === "") return;
+    var dt = document.createElement("dt");
+    dt.textContent = k;
+    var dd = document.createElement("dd");
+    dd.textContent = String(v);
+    dl.appendChild(dt);
+    dl.appendChild(dd);
+  }}
+  function shortRev(r) {{
+    if (!r) return "";
+    return String(r).length > 12 ? String(r).slice(0, 12) : String(r);
+  }}
+  async function loadUpdates() {{
+    var box = document.getElementById("upd-status");
+    var dl = document.getElementById("upd-grid");
+    var stamp = document.getElementById("upd-updated");
+    var cb = document.getElementById("upd-overnight");
+    var applyBtn = document.getElementById("upd-apply");
+    if (!box || !dl) return;
+    try {{
+      var s = await window.lanUi.fetchJson("/system/updates");
+      var kind = s.update_available ? "warn" : (s.last_check_ok === false ? "bad" : "ok");
+      var title = s.update_available ? "Update available" : (s.last_check_at ? "Up to date" : "Not checked yet");
+      if (s.last_check_ok === false) title = "Check failed";
+      window.lanUi.banner(box, kind, title, s.message || "");
+      dl.innerHTML = "";
+      row(dl, "Channel", s.channel || "diy-home-webcam");
+      row(dl, "Local", shortRev(s.local_rev) || (s.local_version ? ("v" + s.local_version) : "not stamped"));
+      row(dl, "Remote", shortRev(s.remote_rev) || "—");
+      row(dl, "Last check", s.last_check_at || "never");
+      if (cb && document.activeElement !== cb) cb.checked = !!s.check_overnight;
+      if (applyBtn) applyBtn.disabled = !s.update_available;
+      window.lanUi.stampUpdated(stamp, true);
+    }} catch (e) {{
+      window.lanUi.banner(box, "bad", "Updates unreachable", String(e && e.message ? e.message : e));
+      window.lanUi.stampUpdated(stamp, false);
+    }}
+  }}
+  var overnight = document.getElementById("upd-overnight");
+  if (overnight) {{
+    overnight.addEventListener("change", async function () {{
+      try {{
+        await window.lanUi.fetchJson("/system/updates", {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/json" }},
+          body: JSON.stringify({{ check_overnight: !!overnight.checked }}),
+          timeoutMs: 15000,
+        }});
+        window.lanUi.showBanner(
+          "upd-msg",
+          "ok",
+          overnight.checked ? "Overnight check on" : "Overnight check off",
+          overnight.checked
+            ? "The Pi will compare against the public DIY repo around 03:00 local."
+            : "No automatic checks. You can still use Check now."
+        );
+        loadUpdates();
+      }} catch (e) {{
+        overnight.checked = !overnight.checked;
+        window.lanUi.showBanner(
+          "upd-msg",
+          "bad",
+          "Could not save preference",
+          String(e && e.message ? e.message : e)
+        );
+      }}
+    }});
+  }}
+  var checkBtn = document.getElementById("upd-check");
+  if (checkBtn) {{
+    checkBtn.addEventListener("click", async function () {{
+      window.lanUi.setBusy(checkBtn, true, "Checking…");
+      try {{
+        var res = await window.lanUi.fetchJson("/system/updates/check", {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/json" }},
+          body: JSON.stringify({{}}),
+          timeoutMs: 60000,
+        }});
+        window.lanUi.showBanner(
+          "upd-msg",
+          res.update_available ? "warn" : "ok",
+          res.update_available ? "Update available" : "Check complete",
+          res.message || ""
+        );
+        loadUpdates();
+      }} catch (e) {{
+        window.lanUi.showBanner(
+          "upd-msg",
+          "bad",
+          "Check failed",
+          String(e && e.message ? e.message : e)
+        );
+      }} finally {{
+        window.lanUi.setBusy(checkBtn, false);
+      }}
+    }});
+  }}
+  var applyBtn = document.getElementById("upd-apply");
+  if (applyBtn) {{
+    applyBtn.addEventListener("click", async function () {{
+      if (!window.lanUi.confirm(
+        "Apply appliance code update now?\\n\\n" +
+        "Pulls code from the public diy-home-webcam repo and restarts webcam services.\\n" +
+        "Does not overwrite cameras YAML, private overlays, or /etc secrets.\\n" +
+        "Does not run apt. The LAN UI will disconnect briefly."
+      )) return;
+      window.lanUi.setBusy(applyBtn, true, "Applying…");
+      try {{
+        var res = await window.lanUi.fetchJson("/system/updates/apply", {{
+          method: "POST",
+          headers: {{ "Content-Type": "application/json" }},
+          body: JSON.stringify({{ confirm: true }}),
+          timeoutMs: 20000,
+        }});
+        window.lanUi.showBanner(
+          "upd-msg",
+          "warn",
+          "Applying update",
+          res.message || "Accepted"
+        );
+      }} catch (e) {{
+        window.lanUi.showBanner(
+          "upd-msg",
+          "bad",
+          "Apply failed",
+          String(e && e.message ? e.message : e)
+        );
+        window.lanUi.setBusy(applyBtn, false);
+      }}
+    }});
+  }}
+  loadUpdates();
+}})();
+</script>
+"""
     system_card = f"""
   {lan_ui.banner_slot("sys-msg")}
   <p class="muted">Home network only. Reboot and shut down affect the whole Pi. Restart webcam services leaves the OS running.</p>
@@ -407,6 +568,7 @@ def _pipe_home_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
   {lan_ui.page_header("Pipeline", "Crops, privacy masks, private LAN-only images, and the public livestream schedule — pipeline service only.", title_suffix=" " + lan_ui.pill("8090"), kicker=":8090 · render · publish")}
   {lan_ui.card("Pipeline status", status_card, kind="pipe")}
   {lan_ui.card("System health", health_strip, kind="pipe")}
+  {lan_ui.card("Updates", updates_card, kind="pipe")}
   {lan_ui.card("Network", network_card, kind="pipe")}
   {lan_ui.card("Recent logs", logs_card, kind="pipe")}
   {lan_ui.card("System", system_card, kind="pipe")}
@@ -2552,6 +2714,9 @@ def make_handler(
                     n = 40
                 self._json(200, collect_unit_logs(lines=n))
                 return
+            if path == "/system/updates":
+                self._json(200, updates_status(repo=Path(state.repo_root)))
+                return
             if path == "/status":
                 payload = state.status()
                 payload["schedule"] = _schedule(_primary_camera()).evaluate().as_dict()
@@ -2705,6 +2870,9 @@ def make_handler(
                         "POST /system/restart-services",
                         "GET /system/status",
                         "GET /system/logs",
+                        "GET|POST /system/updates",
+                        "POST /system/updates/check",
+                        "POST /system/updates/apply",
                         "/cameras/<id>/original.jpg",
                         "/cameras/<id>/variants/<file>.jpg",
                         "/private/<id>.jpg",
@@ -2889,6 +3057,47 @@ def make_handler(
                         result = schedule_power("reboot" if path.endswith("/reboot") else "poweroff")
                     self._json(202, result)
                 except SystemOpsError as exc:
+                    self._json(400, {"error": str(exc)})
+                except ValueError as exc:
+                    code = 413 if "too large" in str(exc) else 400
+                    self._json(code, {"error": str(exc)})
+                return
+
+            if path == "/system/updates":
+                try:
+                    body = self._read_json_body(length) if length else {}
+                    if "check_overnight" not in body:
+                        raise UpdatesError('JSON body must include "check_overnight": true|false')
+                    result = set_check_overnight(bool(body.get("check_overnight")))
+                    self._json(200, result)
+                except UpdatesError as exc:
+                    self._json(400, {"error": str(exc)})
+                except ValueError as exc:
+                    code = 413 if "too large" in str(exc) else 400
+                    self._json(code, {"error": str(exc)})
+                return
+
+            if path == "/system/updates/check":
+                try:
+                    # Manual Check now always runs (even when overnight opt-in is off).
+                    result = run_check(force=True, repo=Path(state.repo_root))
+                    self._json(200 if result.get("ok", True) else 502, result)
+                except UpdatesError as exc:
+                    self._json(400, {"error": str(exc)})
+                except ValueError as exc:
+                    code = 413 if "too large" in str(exc) else 400
+                    self._json(code, {"error": str(exc)})
+                return
+
+            if path == "/system/updates/apply":
+                try:
+                    body = self._read_json_body(length) if length else {}
+                    require_confirm(body)
+                    result = schedule_apply()
+                    self._json(202, result)
+                except SystemOpsError as exc:
+                    self._json(400, {"error": str(exc)})
+                except UpdatesError as exc:
                     self._json(400, {"error": str(exc)})
                 except ValueError as exc:
                     code = 413 if "too large" in str(exc) else 400

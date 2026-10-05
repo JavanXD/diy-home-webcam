@@ -11,9 +11,10 @@ Do not file a public issue that includes live hostnames, tokens, unpublished ima
 
 ## Updates
 
-- **Ops / this checkout:** pull or sync the repo, then provision/deploy on the Pi (`pi/provision.sh` / `pi/pipeline/scripts/deploy.sh`), or re-flash a newer image.
+- **Appliance code (DIY LAN UI):** Pipeline home → **Updates** — opt-in **Check for updates overnight** (default off) against public [`diy-home-webcam`](https://github.com/JavanXD/diy-home-webcam); notify in the UI; **Apply update** syncs allowlisted code paths and restarts services (does not wipe cameras YAML / `/etc` secrets). No silent auto-deploy in v1.
+- **Ops / this checkout (Example):** keep Mac `./pi/scripts/sync-to-pi.sh` + deploy; leave overnight check **off** on the ops Pi (private overlay is not on the public remote).
 - **DIY flashable image:** new builds from GitHub Actions **Build Pi image**; download `home-webcam-*.img.xz` from [diy-home-webcam Releases](https://github.com/JavanXD/diy-home-webcam/releases) when published, or rebuild locally with `./image/build-with-pi-gen.sh`.
-- **OS packages:** `sudo apt update && sudo apt full-upgrade` on a schedule you trust.
+- **OS packages:** `sudo apt update && sudo apt full-upgrade` on a schedule you trust (separate from the overnight appliance checkbox).
 - **Support window:** this is a maintained personal/DIY project, not a commercial product SKU — security fixes land in git as they are found; there is no multi-year guaranteed support contract.
 
 ## EU Cyber Resilience Act / RED IoT — alignment goals
@@ -24,7 +25,7 @@ This section describes **practical DIY alignment goals** with the spirit of the 
 |------|------------|
 | No universal default password | Setup AP PSK is **unique per device** (derived from board serial / machine-id). Written to `/boot/firmware/webcam-setup.txt` and shown on Setup UI while the AP is up — not a shared README password. |
 | Vulnerability disclosure | Private GitHub security advisory only (link above). |
-| Update expectation | Git pull / re-flash / Releases + apt; honest DIY support window (above). |
+| Update expectation | Opt-in overnight appliance check + Apply / re-flash / Releases + apt; honest DIY support window (above). |
 | Secure by default | Setup AP auto-disables after home Wi-Fi join; Imager **SSH public key** preferred; password SSH disabled on first boot when `authorized_keys` is present; unique emergency SSH password on the boot card when keys are absent. |
 | Trusted LAN UI | No mandatory login on `:8080` / `:8090` — the home network is the trust boundary (CRA focus here is defaults + updateability, not LAN auth on a local appliance). |
 

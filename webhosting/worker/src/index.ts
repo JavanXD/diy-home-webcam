@@ -89,8 +89,21 @@ async function serveLiveJpeg(
     `public, max-age=${LIVE_CACHE_SECONDS}, stale-while-revalidate=${LIVE_SWR_SECONDS}`,
   );
   if (object.httpEtag) headers.set("ETag", object.httpEtag);
-  if (object.uploaded) {
+  // Publish time (R2 overwrite). Landing / embed pages use this for
+  // "last updated" and next-fetch scheduling — not the page-open clock.
+  const uploadedAt =
+    object.customMetadata?.["captured-at"] ||
+    object.customMetadata?.["uploaded-at"] ||
+    (object.uploaded ? object.uploaded.toISOString() : null);
+  if (uploadedAt) {
+    const parsed = Date.parse(uploadedAt);
+    if (!Number.isNaN(parsed)) {
+      headers.set("Last-Modified", new Date(parsed).toUTCString());
+      headers.set("X-Webcam-Uploaded-At", new Date(parsed).toISOString());
+    }
+  } else if (object.uploaded) {
     headers.set("Last-Modified", object.uploaded.toUTCString());
+    headers.set("X-Webcam-Uploaded-At", object.uploaded.toISOString());
   }
 
   if (request.method === "HEAD") {

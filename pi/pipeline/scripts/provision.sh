@@ -73,6 +73,10 @@ for rules in 50-webcam-network.rules 50-webcam-system.rules; do
     sudo chmod 644 "/etc/polkit-1/rules.d/$rules"
   fi
 done
+# Overnight DIY update check (timer always on; check is opt-in via LAN UI).
+if [[ -x "$REPO_ROOT/pi/scripts/install-update-check.sh" ]]; then
+  sudo INSTALL_ROOT="$INSTALL_ROOT" "$REPO_ROOT/pi/scripts/install-update-check.sh"
+fi
 sudo systemctl daemon-reload
 sudo systemctl enable webcam-pipeline.service
 sudo systemctl restart webcam-pipeline.service

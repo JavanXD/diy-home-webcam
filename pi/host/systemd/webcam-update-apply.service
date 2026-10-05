@@ -1,0 +1,16 @@
+[Unit]
+Description=Home webcam — apply DIY appliance code update
+Documentation=file:///opt/home-webcam-pipeline/docs/diy/SECURITY.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=INSTALL_ROOT=/opt/home-webcam-pipeline
+ExecStart=/opt/home-webcam-pipeline/pi/scripts/webcam-update-apply.sh
+TimeoutStartSec=15min
+Nice=5
+
+[Install]
+WantedBy=multi-user.target

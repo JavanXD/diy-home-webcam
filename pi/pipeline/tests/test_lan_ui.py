@@ -215,7 +215,10 @@ def test_pipeline_ui_strings():
     assert "/system/restart-services" in home
     assert "/system/status" in home
     assert "/system/logs" in home
+    assert "/system/updates" in home
     assert "System health" in home
+    assert "Updates" in home
+    assert "Check for updates overnight" in home
     assert "Recent logs" in home
     assert "Network" in home
     assert "lanUi.confirm" in home

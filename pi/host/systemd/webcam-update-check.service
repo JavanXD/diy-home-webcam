@@ -1,0 +1,18 @@
+[Unit]
+Description=Home webcam — check for DIY appliance updates (notify only)
+Documentation=file:///opt/home-webcam-pipeline/docs/diy/SECURITY.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=webcam
+Group=webcam
+Environment=INSTALL_ROOT=/opt/home-webcam-pipeline
+ExecStart=/opt/home-webcam-pipeline/pi/scripts/webcam-update-check.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Home webcam — nightly DIY update check (opt-in in LAN UI)
+Documentation=file:///opt/home-webcam-pipeline/docs/diy/SECURITY.md
+
+[Timer]
+# ~03:00 local with a randomized delay so many Pis do not hit GitHub together.
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+RandomizedDelaySec=45min
+
+[Install]
+WantedBy=timers.target

@@ -87,6 +87,10 @@ if [[ -x "$ROOT/pi/scripts/install-setup-ap.sh" ]]; then
   "$ROOT/pi/scripts/install-setup-ap.sh"
 fi
 
+if [[ -x "$ROOT/pi/scripts/install-update-check.sh" ]]; then
+  "$ROOT/pi/scripts/install-update-check.sh" || true
+fi
+
 # Run setup-AP ensure once now (settle time applies). Safe no-op if Imager Wi-Fi exists.
 if [[ -x "$ROOT/pi/scripts/webcam-setup-ap.sh" ]]; then
   SETUP_AP_SETTLE_SECONDS="${SETUP_AP_SETTLE_SECONDS:-15}" \

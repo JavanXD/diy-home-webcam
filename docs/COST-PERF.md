@@ -16,13 +16,13 @@ Target stack: **Workers Free + R2 Free + no Cloudflare Images**. Optimizations b
 | Conditional GET (ETag) | on | Skip download when Pi image unchanged; still re-render public badge/clock |
 | Worker live JPEG `Cache-Control` | **max-age=60, stale-while-revalidate=30** | Matches placeholder Uhrzeit republish (~1 min) |
 | Workers Caching (`cache.enabled`) | **on** | Edge HIT skips Worker invoke + R2 Class B |
-| Landing refresh JS | **next minute + random 15–45s**, stable URL | Per-tab jitter avoids :05 stampede; usually after irregular publish (~:10–:15); no `?t=` bust; `If-None-Match` |
+| Landing refresh JS | **next minute after image stamp + random 15–45s**, stable URL | Anchored to `Last-Modified` / `X-Webcam-Uploaded-At` (not page-open); per-tab jitter; no `?t=` bust; `If-None-Match` |
 | Static HTML | max-age=60, s-w-r=600 | `_headers`; asset-first (no Worker) |
 | Favicons / OG / branding PNG | **7d immutable** | `_headers`; cheap static hits |
 
 ## Public edge caching (intentional tradeoffs)
 
-1. **Freshness ≈ live overwrite** — Wartung / night placeholders republish at least every **minute** with a fresh wall-clock `YYYY-MM-DD HH:MM` (+ site/temp badge). Edge `max-age=60`; landing JS refreshes at **next minute + random 15–45s** (per tab) so clients spread and usually land after upload. Live camera frames still skip R2 when bytes are identical.
+1. **Freshness ≈ live overwrite** — Wartung / night placeholders republish at least every **minute** with a fresh wall-clock `YYYY-MM-DD HH:MM` (+ site/temp badge). Edge `max-age=60`; landing JS refreshes at **next minute after the JPEG publish stamp + random 15–45s** (per tab) so clients spread and usually land after upload. Live camera frames still skip R2 when bytes are identical.
 2. **No cache-busting query** — Unique `?t=` keys defeat Workers Caching (path+query is the cache key). The landing uses the bare `/example-live-webcam.jpg` URL; any query is **302**’d away.
 3. **503 is `no-store`** — Missing live object must not be cached while publish is catching up.
 4. **Worker miss returns 200 + body** — So the edge can store a full entry; browsers/CDN still do ETag/304 on subsequent revalidations without a Class B each time.
