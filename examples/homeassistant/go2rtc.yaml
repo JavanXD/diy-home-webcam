@@ -5,8 +5,9 @@
 #   webrtc/offer: streams: codecs not matched: video:JPEG => video:VP8,…
 #
 # Replace:
-#   192.168.1.50           Pi LAN address (example)
-#   webcam_example_live    stream name used by webrtc-camera
+#   192.168.1.50                 Pi LAN address (example)
+#   webcam_example_live          live stream name (webrtc-camera url)
+#   webcam_example_live_snap     poster still (webrtc-camera poster)
 #
 # Where to put this depends on your HA install:
 #   - HA OS / Supervised: Settings → Add-ons → go2rtc → Configuration
@@ -21,8 +22,10 @@
 #   Pinning the h264 template to libx264 and setting #hardware=software
 #   keeps MakeHardware from swapping to v4l2m2m. Do not use bare #hardware.
 #
-# LAN only — this URL is the raw (uncensored) picture. Do not expose :8081
-# outside the home network. Public stills stay on the privacy pipeline / R2.
+# Poster: go2rtc fetches snapshot.jpg on the LAN; the Lovelace card only
+# references the stream *name* so HTTPS dashboards stay same-origin.
+# LAN only — do not expose :8081 outside the home network. Public stills
+# stay on the privacy pipeline / R2.
 
 ffmpeg:
   # Explicit software H264 (same as go2rtc stock defaults; pins past host overrides).
@@ -34,3 +37,6 @@ streams:
     # Optional dual-source (MJPEG + H264 child) — equivalent WebRTC path:
     # - http://192.168.1.50:8081/stream.mjpg
     # - ffmpeg:webcam_example_live#video=h264#hardware=software
+  # JPEG still for webrtc-camera poster (HTTPS-safe when poster: is this name).
+  webcam_example_live_snap:
+    - http://192.168.1.50:8081/snapshot.jpg

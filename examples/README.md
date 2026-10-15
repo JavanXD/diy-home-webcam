@@ -49,7 +49,7 @@ The id is uppercased and hyphens become underscores.
 
 Still JPEGs (private / public LAN): [`homeassistant/webcam.yaml`](homeassistant/webcam.yaml) and [`homeassistant/lovelace.yaml`](homeassistant/lovelace.yaml). Search-replace the four tokens in the header comment before you copy the file into HA.
 
-Live uncensored view (go2rtc + `webrtc-camera`, Pi Extra on `:8081`): [`homeassistant/go2rtc.yaml`](homeassistant/go2rtc.yaml) and [`homeassistant/lovelace-live.yaml`](homeassistant/lovelace-live.yaml). go2rtc must ffmpeg-transcode MJPEG→H264 for `mode: webrtc`. LAN only — see [`pi/stream/README.md`](../pi/stream/README.md).
+Live uncensored view (go2rtc + `webrtc-camera`, Pi Extra on `:8081`): [`homeassistant/go2rtc.yaml`](homeassistant/go2rtc.yaml) and [`homeassistant/lovelace-live.yaml`](homeassistant/lovelace-live.yaml). go2rtc must ffmpeg-transcode MJPEG→H264 for `mode: webrtc`. Card `poster` must be a go2rtc stream name (HTTPS-safe); LAN `http://…:8081/snapshot.jpg` is blocked as mixed content on HTTPS dashboards. LAN only — see [`pi/stream/README.md`](../pi/stream/README.md).
 
 ## 6. Host disk and network (optional)
 

@@ -52,6 +52,8 @@ ffmpeg:
 streams:
   webcam_example_live:
     - ffmpeg:http://<pi>:8081/stream.mjpg#video=h264#hardware=software
+  webcam_example_live_snap:
+    - http://<pi>:8081/snapshot.jpg
 ```
 
 `#hardware=software` keeps go2rtc on libx264. Bare `#hardware` (or an overridden
@@ -60,3 +62,8 @@ streams:
 A bare `http://…/stream.mjpg` source stays JPEG and fails WebRTC with
 `codecs not matched: video:JPEG => video:VP8,…`. `mode: mjpeg` on the card
 works without transcode; prefer the ffmpeg line to match other WebRTC cams.
+
+On HTTPS dashboards (Nabu Casa / reverse proxy), set the card
+`poster: webcam_example_live_snap` (go2rtc stream name). Do not use
+`http://<pi>:8081/snapshot.jpg` as poster — browsers block LAN HTTP as mixed
+content (black poster). Keep the Extra off the public internet.

@@ -2,16 +2,25 @@
 #
 # Prerequisites:
 #   1. Pi Extra running: webcam-stream on :8081 (sudo ./pi/provision.sh)
-#   2. Stream name in go2rtc — see go2rtc.yaml (webcam_example_live)
-#      Must use ffmpeg …#video=h264#hardware=software (not a bare MJPEG URL)
-#      for mode: webrtc — pins libx264; bare #hardware selects v4l2m2m and fails.
+#   2. Streams in go2rtc — see go2rtc.yaml
+#        webcam_example_live       H264 (ffmpeg) for mode: webrtc
+#        webcam_example_live_snap  JPEG still for the card poster
 #   3. HACS / custom card: AlexxIT/WebRTC (custom:webrtc-camera)
 #   4. Restart go2rtc after changing streams
 #
 # Tokens:
-#   webcam_example_live   must match the go2rtc streams: key
-#   Example Webcam Live   display name on the card
-#   192.168.1.50          Pi LAN address (example) — poster snapshot
+#   webcam_example_live / webcam_example_live_snap   go2rtc streams: keys
+#   Example Webcam Live                              display name on the card
+#
+# Poster (HTTPS Home Assistant dashboards):
+#   Use a go2rtc stream *name* as poster. AlexxIT webrtc-camera loads it via
+#   the HA/go2rtc integration (same origin as the dashboard).
+#   Do NOT set poster to http://<pi>:8081/snapshot.jpg — browsers block that
+#   as mixed content when the dashboard is HTTPS (black poster; curl on LAN
+#   still works). Do NOT publish the uncensored Extra still to a public HTTPS
+#   host / R2 / Worker.
+#   Raw http://<ha-host>:1984/api/frame.jpeg?src=… is also mixed content under
+#   HTTPS — use the stream name, not a LAN :1984 URL.
 #
 # Video only / muted is fine — the Pi Extra has no audio.
 #
@@ -27,8 +36,7 @@ streams:
 ui: true
 background: true
 muted: true
-poster: http://192.168.1.50:8081/snapshot.jpg
-poster_remote: true
+poster: webcam_example_live_snap
 style: >-
   .mode {} .fullscreen {display: none} .screenshot {display: none}
   .pictureinpicture {display: none} video {aspect-ratio: 16/9; object-fit:
