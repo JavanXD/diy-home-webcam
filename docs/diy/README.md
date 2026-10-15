@@ -8,11 +8,13 @@ Copy this repo onto a Raspberry Pi, point a High Quality Camera at a view you ow
 flowchart LR
   cam[HQ camera] --> capture["webcam-camera :8080"]
   capture --> pipe["webcam-pipeline :8090"]
+  capture --> stream["webcam-stream :8081"]
   pipe --> private[Private JPEG on LAN]
   pipe --> public{Publish?}
   public -->|off / local| lanOnly[LAN or outbox]
   public -->|S3 / R2| bucket[Object store]
   bucket --> worker[Optional Worker page]
+  stream --> go2rtc[go2rtc on LAN]
 ```
 
 Feature tour with LAN screenshots: [root README → Features](../../README.md#features).

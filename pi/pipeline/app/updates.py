@@ -45,6 +45,11 @@ _SYNC_REL_PATHS = (
     "pi/pipeline/scripts",
     "pi/pipeline/systemd",
     "pi/pipeline/requirements.txt",
+    "pi/stream/app",
+    "pi/stream/scripts",
+    "pi/stream/systemd",
+    "pi/stream/requirements.txt",
+    "pi/stream/config",
     "pi/scripts",
     "pi/host/systemd",
     "pi/provision.sh",
@@ -430,22 +435,34 @@ def apply_from_tarball(
                 timeout=120,
             )
 
-        req = root / "pi" / "pipeline" / "requirements.txt"
-        venv_pip = root / "pi" / "pipeline" / ".venv" / "bin" / "pip"
-        if req.is_file() and venv_pip.is_file():
-            subprocess.run(
-                [str(venv_pip), "install", "-r", str(req)],
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=600,
-            )
+        for rel_req, rel_pip in (
+            ("pi/pipeline/requirements.txt", "pi/pipeline/.venv/bin/pip"),
+            ("pi/stream/requirements.txt", "pi/stream/.venv/bin/pip"),
+            ("pi/camera/requirements.txt", "pi/camera/.venv/bin/pip"),
+        ):
+            req = root / rel_req
+            venv_pip = root / rel_pip
+            if req.is_file() and venv_pip.is_file():
+                subprocess.run(
+                    [str(venv_pip), "install", "-r", str(req)],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=600,
+                )
 
         # Refresh unit files if present (idempotent; skip when /etc not writable).
         _install_unit_files(root)
 
         _systemctl(["daemon-reload"])
-        _systemctl(["restart", "webcam-camera.service", "webcam-pipeline.service"])
+        _systemctl(
+            [
+                "restart",
+                "webcam-camera.service",
+                "webcam-pipeline.service",
+                "webcam-stream.service",
+            ]
+        )
 
     write_installed_rev(sha, base)
     st = read_state(base)
@@ -605,6 +622,7 @@ def _install_unit_files(root: Path) -> None:
         for unit in (
             root / "pi" / "pipeline" / "systemd" / "webcam-pipeline.service",
             root / "pi" / "camera" / "systemd" / "webcam-camera.service",
+            root / "pi" / "stream" / "systemd" / "webcam-stream.service",
         ):
             if unit.is_file():
                 shutil.copy2(unit, etc_sys / unit.name)

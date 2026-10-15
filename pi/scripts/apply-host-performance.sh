@@ -119,7 +119,7 @@ echo "    zram swap:        $(swapon --show --noheadings 2>/dev/null | awk '{pri
 # Sanity: must-keep units still up
 keep_ok=1
 for must in ssh.service nginx.service avahi-daemon.service NetworkManager.service \
-  webcam-camera.service webcam-pipeline.service systemd-timesyncd.service; do
+  webcam-camera.service webcam-pipeline.service webcam-stream.service systemd-timesyncd.service; do
   if ! systemctl is-active --quiet "$must"; then
     echo "WARN: expected active: $must" >&2
     keep_ok=0

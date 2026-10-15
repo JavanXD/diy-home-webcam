@@ -28,7 +28,8 @@ rsync -a --delete \
 install -d -m 755 "${TARGET_OPT}/cameras/example"
 rsync -a "${REPO_ROOT}/examples/cameras/example/" "${TARGET_OPT}/cameras/example/"
 
-install -d -m 755 "${ROOTFS_DIR}/etc/webcam-pipeline" "${ROOTFS_DIR}/etc/webcam-camera"
+install -d -m 755 "${ROOTFS_DIR}/etc/webcam-pipeline" "${ROOTFS_DIR}/etc/webcam-camera" \
+  "${ROOTFS_DIR}/etc/webcam-stream"
 install -m 644 "${REPO_ROOT}/examples/pi/pipeline.yaml" \
   "${ROOTFS_DIR}/etc/webcam-pipeline/pipeline.yaml"
 sed -i "s|repo_root: null|repo_root: /opt/home-webcam-pipeline|" \
@@ -36,6 +37,8 @@ sed -i "s|repo_root: null|repo_root: /opt/home-webcam-pipeline|" \
 install -m 600 /dev/null "${ROOTFS_DIR}/etc/webcam-pipeline/env"
 install -m 640 "${REPO_ROOT}/pi/camera/config/camera.example.yaml" \
   "${ROOTFS_DIR}/etc/webcam-camera/camera.yaml"
+install -m 640 "${REPO_ROOT}/pi/stream/config/stream.example.yaml" \
+  "${ROOTFS_DIR}/etc/webcam-stream/stream.yaml"
 
 install -m 644 "${REPO_ROOT}/pi/host/setup-ap.env" "${ROOTFS_DIR}/etc/webcam-setup-ap.env"
 install -m 644 "${REPO_ROOT}/pi/host/systemd/webcam-setup-ap.service" \

@@ -19,8 +19,9 @@ capture:
   height: 3040
   # Slightly lower quality = less LAN/R2 bandwidth for the same view
   jpeg_quality: 88
-  # Align with pipeline poll (~60s); capturing faster only burns CPU/SD
-  interval_seconds: 30
+  # 1s keeps /raw.jpg + webcam-stream MJPEG nearer-live (more CPU/SD wear).
+  # Public R2 cadence follows pipeline poll_interval_seconds (cameras/*.yaml), not this.
+  interval_seconds: 1
   timeout_seconds: 15
   exposure_mode: auto
   awb_mode: auto
@@ -39,7 +40,7 @@ logging:
   level: INFO
 
 health:
-  # > 2× capture interval → DEGRADED
-  stale_after_seconds: 90
+  # > ~5× capture interval → DEGRADED
+  stale_after_seconds: 5
   # Auto Wartungsbild after N consecutive capture failures (startup no-device is immediate).
   auto_maintenance_after_failures: 2

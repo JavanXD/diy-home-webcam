@@ -26,6 +26,12 @@ from .public_live import PublicLiveSelection, publish_live_key_for_variant
 from .render import render_variants
 from .schedule import PublicSchedule
 from .serve_private import make_handler
+from .system_ops import (
+    health_url_from_source,
+    make_timing_provider,
+    start_host_metrics,
+    stop_host_metrics,
+)
 from .timelapse import archive_for
 from .state import PipelineState
 from .store import OriginalStore, SaveResult
@@ -542,6 +548,7 @@ def process_camera(
             changed=saved.changed,
             original_path=str(saved.path),
             next_steps=["No action needed"],
+            duration_seconds=round(elapsed, 3),
         )
         return {"ok": True, "summary": summary}
 
@@ -565,6 +572,7 @@ def process_camera(
             "keeping_last_variants": True,
             "note": "Publish failure does not remove local private/public JPEGs.",
         },
+        duration_seconds=round(elapsed, 3),
     )
     return {"ok": False, "summary": summary}
 
@@ -672,6 +680,20 @@ def main(argv: list[str] | None = None) -> int:
         daemon=True,
     )
     worker.start()
+    camera_health = None
+    try:
+        primary = list(cfg.get("cameras") or [])[0]
+        profile = load_camera_profile(repo_root, primary)
+        camera_health = health_url_from_source(profile.source_url, profile.health_url)
+    except Exception:  # noqa: BLE001
+        camera_health = "http://127.0.0.1:8080/health"
+    start_host_metrics(
+        timing_provider=make_timing_provider(
+            state=state,
+            camera_health_url=camera_health,
+            stream_health_url="http://127.0.0.1:8081/health",
+        )
+    )
 
     handler = make_handler(
         state,
@@ -708,6 +730,7 @@ def main(argv: list[str] | None = None) -> int:
             stop.wait(0.5)
     finally:
         stop.set()
+        stop_host_metrics()
         server.shutdown()
         log.info("[shutdown] stopped cleanly")
     return 0

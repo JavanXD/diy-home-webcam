@@ -1,0 +1,28 @@
+[Unit]
+Description=Home webcam LAN MJPEG Extra (go2rtc)
+After=network-online.target webcam-camera.service
+Wants=network-online.target webcam-camera.service
+
+[Service]
+Type=simple
+User=webcam
+Group=webcam
+WorkingDirectory=/opt/home-webcam-pipeline/pi/stream
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/home-webcam-pipeline/pi/stream/.venv/bin/python -m app.main --config /etc/webcam-stream/stream.yaml
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/webcam-stream
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+LockPersonality=true
+MemoryDenyWriteExecute=false
+
+[Install]
+WantedBy=multi-user.target

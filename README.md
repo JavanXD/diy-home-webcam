@@ -4,7 +4,7 @@
 
 A headless Raspberry Pi captures a still JPEG, keeps a private view on your LAN, and can optionally publish one privacy-filtered public JPEG to Cloudflare R2 or any S3-compatible store — or leave publish off.
 
-Two systemd services on one Pi: capture on `:8080`, variants and publish on `:8090`. Originals stay on the LAN. Only a public crop you chose — with privacy masks — can leave the house.
+Three systemd services on one Pi: capture on `:8080`, variants and publish on `:8090`, and an optional LAN MJPEG Extra on `:8081` for go2rtc. Originals stay on the LAN. Only a public crop you chose — with privacy masks — can leave the house.
 
 ## How it works
 
@@ -12,12 +12,14 @@ Two systemd services on one Pi: capture on `:8080`, variants and publish on `:80
 flowchart LR
   cam[HQ camera] --> capture["webcam-camera :8080"]
   capture --> pipe["webcam-pipeline :8090"]
+  capture --> stream["webcam-stream :8081"]
   pipe --> private[Private JPEG on LAN]
   pipe --> public{Publish?}
   public -->|off / local| lanOnly[LAN or outbox only]
   public -->|S3 / R2| bucket[Object store]
   bucket --> worker[Optional Worker page]
   private --> ha[Home Assistant optional]
+  stream --> go2rtc[go2rtc on LAN]
 ```
 
 ## Features
@@ -58,7 +60,7 @@ Public live follows sunrise/sunset (with offsets), fixed clock times, or always-
 <img src="docs/diy/images/lan-setup-find-pi.jpg" alt="Setup UI — Find this Pi" width="360" />
 - **Site badge + temperature** — cream burn-in (hostname · outdoor °C) on public frames
 - **Cover-fit output** — visual crop + YAML crop scale into width×height without stretching
-- **Home Assistant** — YAML-only package; poll the private LAN JPEG
+- **Home Assistant** — YAML-only package; poll the private LAN JPEG; optional go2rtc live via the `:8081` Extra
 - **Timelapse** — build MP4/GIF from saved daylight frames on the Pi
 
 ## Install

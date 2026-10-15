@@ -38,6 +38,8 @@ def test_lan_ui_page_chrome_and_tokens():
     assert "Pipeline" in html and "Schedule" in html
     assert "Variants" in html
     assert "Timelapse" in html
+    assert "System Info" in html
+    assert "/system/ui" in html
     assert "Pipeline home" in html
     assert "Health (JSON)" in html
     assert "Raw JPEG (always live)" in html
@@ -206,21 +208,13 @@ def test_pipeline_ui_strings():
     assert "formatDuration" in home
     assert 'id="pipe-health"' in home
     assert "Operator tools" not in home
-    assert "System" in home
-    assert "Restart webcam services" in home
-    assert "Reboot Pi" in home
-    assert "Shut down Pi" in home
-    assert "/system/reboot" in home
-    assert "/system/poweroff" in home
-    assert "/system/restart-services" in home
-    assert "/system/status" in home
-    assert "/system/logs" in home
     assert "/system/updates" in home
-    assert "System health" in home
     assert "Updates" in home
     assert "Check for updates overnight" in home
-    assert "Recent logs" in home
-    assert "Network" in home
+    assert "/system/ui" in home
+    assert "System Info" in home
+    assert "Restart webcam services" not in home  # moved to System Info
+    assert "sys-gauge-grid" not in home
     assert "lanUi.confirm" in home
     assert "page-header" in home
     # JSON link spam removed from body; endpoints live under More
@@ -228,6 +222,23 @@ def test_pipeline_ui_strings():
     assert 'href="/status">Status' not in home
     # Cross-service jump lives in green/red nav, not a combined overview body
     assert 'data-lan-port="8080"' in home  # nav Camera link
+
+    from app.system_info_ui import system_info_ui
+
+    sysinfo = system_info_ui()
+    assert "System Info" in sysinfo
+    assert 'id="sys-gauge-grid"' in sysinfo
+    assert "gauge-zone-ok" in sysinfo
+    assert "sys-metrics-host" in sysinfo
+    assert "sys-metrics-timing" in sysinfo
+    assert "sys-metrics-refresh" in sysinfo
+    assert "Restart webcam services" in sysinfo
+    assert "/system/reboot" in sysinfo
+    assert "/system/status" in sysinfo
+    assert "Recent logs" in sysinfo
+    assert "Network" in sysinfo
+    assert 'data-lan-path="/system/ui"' in sysinfo
+    assert 'class="svc-pipe"' in sysinfo
 
     sched = _schedule_ui()
     assert "Public schedule" in sched

@@ -1,11 +1,12 @@
-# Pi runtime (camera + pipeline)
+# Pi runtime (camera + pipeline + stream Extra)
 
-Both systemd services run on the **same Raspberry Pi**. Home Assistant only imports YAML from `homeassistant/`.
+Systemd services run on the **same Raspberry Pi**. Home Assistant only imports YAML from `examples/homeassistant/`.
 
 | Path | Port | Unit | Role |
 |------|------|------|------|
 | `pi/camera/` | 8080 | `webcam-camera` | Capture + `/raw.jpg` (always live) + `/feed.jpg` (Wartungsbild) |
 | `pi/pipeline/` | 8090 | `webcam-pipeline` | Render variants, private HTTP for HA, R2 publish |
+| `pi/stream/` | 8081 | `webcam-stream` | LAN-only uncensored MJPEG Extra for go2rtc (pulls `/raw.jpg` over HTTP) |
 
 ```bash
 # On the Pi, from the repo root
@@ -13,7 +14,8 @@ sudo ./pi/provision.sh
 ```
 
 Camera-only: `pi/camera/scripts/provision.sh`  
-Pipeline-only: `pi/pipeline/scripts/provision.sh`
+Pipeline-only: `pi/pipeline/scripts/provision.sh`  
+Stream Extra only: `pi/stream/scripts/provision.sh`
 
 Operator host / SSH / IPs: `Notes.txt` and [docs/NAMING.md](../docs/NAMING.md). Secrets: `~/Projects/.secrets/raspicam.env`.  
 Storage / boot / network IaC: [docs/PI-HOST.md](../docs/PI-HOST.md) (`pi/host/*.env` + `pi/scripts/`).
@@ -25,6 +27,7 @@ set -a && source ~/Projects/.secrets/raspicam.env && set +a
 ./pi/scripts/sync-to-pi.sh "${RASPICAM_SSH_USER}@${RASPICAM_HOST}"
 ./pi/camera/scripts/deploy.sh "${RASPICAM_SSH_USER}@${RASPICAM_HOST}"   # optional service restart path
 ./pi/pipeline/scripts/deploy.sh "${RASPICAM_SSH_USER}@${RASPICAM_HOST}"
+./pi/stream/scripts/deploy.sh "${RASPICAM_SSH_USER}@${RASPICAM_HOST}"
 ```
 
 If pipeline health shows `Permission denied` under `/opt/home-webcam-pipeline/data`, restore

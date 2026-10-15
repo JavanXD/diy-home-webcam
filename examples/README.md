@@ -47,7 +47,9 @@ The id is uppercased and hyphens become underscores.
 
 ## 5. Home Assistant (optional)
 
-[`homeassistant/webcam.yaml`](homeassistant/webcam.yaml) and [`homeassistant/lovelace.yaml`](homeassistant/lovelace.yaml). Search-replace the four tokens in the header comment before you copy the file into HA.
+Still JPEGs (private / public LAN): [`homeassistant/webcam.yaml`](homeassistant/webcam.yaml) and [`homeassistant/lovelace.yaml`](homeassistant/lovelace.yaml). Search-replace the four tokens in the header comment before you copy the file into HA.
+
+Live uncensored view (go2rtc + `webrtc-camera`, Pi Extra on `:8081`): [`homeassistant/go2rtc.yaml`](homeassistant/go2rtc.yaml) and [`homeassistant/lovelace-live.yaml`](homeassistant/lovelace-live.yaml). go2rtc must ffmpeg-transcode MJPEG→H264 for `mode: webrtc`. LAN only — see [`pi/stream/README.md`](../pi/stream/README.md).
 
 ## 6. Host disk and network (optional)
 

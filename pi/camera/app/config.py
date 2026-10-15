@@ -22,7 +22,12 @@ def load_config(path: Path) -> dict[str, Any]:
     health = data.setdefault("health", {})
     if not isinstance(health, dict):
         raise ValueError("health must be a mapping")
-    health.setdefault("stale_after_seconds", 120)
+    # Default stale window scales with capture interval (≈5×); floor 5s for 1s live capture.
+    try:
+        interval = float((data.get("capture") or {}).get("interval_seconds", 1))
+    except (TypeError, ValueError):
+        interval = 1.0
+    health.setdefault("stale_after_seconds", max(5.0, interval * 5.0))
     # Production: auto Wartungsbild after N consecutive capture failures (startup no-device is immediate)
     health.setdefault("auto_maintenance_after_failures", 2)
     live = data.setdefault("live_preview", {})

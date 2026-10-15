@@ -1,0 +1,35 @@
+# Lovelace — single uncensored live view via go2rtc + webrtc-camera.
+#
+# Prerequisites:
+#   1. Pi Extra running: webcam-stream on :8081 (sudo ./pi/provision.sh)
+#   2. Stream name in go2rtc — see go2rtc.yaml (webcam_example_live)
+#      Must use ffmpeg …#video=h264#hardware=software (not a bare MJPEG URL)
+#      for mode: webrtc — pins libx264; bare #hardware selects v4l2m2m and fails.
+#   3. HACS / custom card: AlexxIT/WebRTC (custom:webrtc-camera)
+#   4. Restart go2rtc after changing streams
+#
+# Tokens:
+#   webcam_example_live   must match the go2rtc streams: key
+#   Example Webcam Live   display name on the card
+#   192.168.1.50          Pi LAN address (example) — poster snapshot
+#
+# Video only / muted is fine — the Pi Extra has no audio.
+#
+# Fallback without transcode: set mode: mjpeg (MJPEG works as JPEG). Prefer
+# the ffmpeg H264 path in go2rtc.yaml so mode: webrtc matches other cams.
+
+type: custom:webrtc-camera
+streams:
+  - url: webcam_example_live
+    mode: webrtc
+    media: video
+    name: Example Webcam Live
+ui: true
+background: true
+muted: true
+poster: http://192.168.1.50:8081/snapshot.jpg
+poster_remote: true
+style: >-
+  .mode {} .fullscreen {display: none} .screenshot {display: none}
+  .pictureinpicture {display: none} video {aspect-ratio: 16/9; object-fit:
+  fill;}

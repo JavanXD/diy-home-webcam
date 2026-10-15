@@ -23,6 +23,7 @@ _NAV_PIPE: tuple[dict[str, object], ...] = (
     {"id": "variants", "label": "Variants", "port": 8090, "path": "/variants/ui"},
     {"id": "setup", "label": "Setup", "port": 8090, "path": "/setup/ui"},
     {"id": "timelapse", "label": "Timelapse", "port": 8090, "path": "/timelapse/ui"},
+    {"id": "system-info", "label": "System Info", "port": 8090, "path": "/system/ui"},
 )
 
 # Raw JSON / JPEG ops endpoints only — no UI pages (those live in _NAV_*).
@@ -130,7 +131,7 @@ def nav_html(active: str | None = None, pipe_more: list[dict[str, str]] | None =
 def _body_svc_class(active: str | None) -> str:
     if active in ("camera", "maintenance"):
         return "svc-cam"
-    if active in ("pipeline", "schedule", "variants", "setup", "timelapse"):
+    if active in ("pipeline", "schedule", "variants", "setup", "timelapse", "system-info"):
         return "svc-pipe"
     return ""
 

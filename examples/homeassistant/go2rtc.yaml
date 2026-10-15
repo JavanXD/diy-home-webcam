@@ -1,0 +1,36 @@
+# go2rtc stream for the Pi LAN MJPEG Extra (uncensored, downscaled).
+#
+# WebRTC needs H264/VP8/VP9/AV1. The Extra serves MJPEG (JPEG), so go2rtc must
+# transcode via ffmpeg — a bare http://…/stream.mjpg source fails with:
+#   webrtc/offer: streams: codecs not matched: video:JPEG => video:VP8,…
+#
+# Replace:
+#   192.168.1.50           Pi LAN address (example)
+#   webcam_example_live    stream name used by webrtc-camera
+#
+# Where to put this depends on your HA install:
+#   - HA OS / Supervised: Settings → Add-ons → go2rtc → Configuration
+#   - Or merge under the go2rtc: key in configuration.yaml / packages
+#
+# After editing: restart the go2rtc add-on (or HA Core if embedded).
+#
+# Why ffmpeg.h264 + #hardware=software:
+#   Stock #video=h264 is libx264 + yuv420p. On some HA hosts (Pi / Frigate /
+#   leftover #hardware / overridden ffmpeg.h264) the encoder becomes
+#   h264_v4l2m2m and fails: "Encoder requires yuv420p pixel format".
+#   Pinning the h264 template to libx264 and setting #hardware=software
+#   keeps MakeHardware from swapping to v4l2m2m. Do not use bare #hardware.
+#
+# LAN only — this URL is the raw (uncensored) picture. Do not expose :8081
+# outside the home network. Public stills stay on the privacy pipeline / R2.
+
+ffmpeg:
+  # Explicit software H264 (same as go2rtc stock defaults; pins past host overrides).
+  h264: "-c:v libx264 -g 50 -profile:v high -level:v 4.1 -preset:v superfast -tune:v zerolatency -pix_fmt:v yuv420p"
+
+streams:
+  webcam_example_live:
+    - ffmpeg:http://192.168.1.50:8081/stream.mjpg#video=h264#hardware=software
+    # Optional dual-source (MJPEG + H264 child) — equivalent WebRTC path:
+    # - http://192.168.1.50:8081/stream.mjpg
+    # - ffmpeg:webcam_example_live#video=h264#hardware=software

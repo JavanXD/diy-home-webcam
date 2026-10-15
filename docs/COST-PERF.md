@@ -12,7 +12,7 @@ Target stack: **Workers Free + R2 Free + no Cloudflare Images**. Optimizations b
 | History `retention_days` | **90** | Cap Class B list + storage; `scripts/prune-history.py` |
 | Wide variant `publish: false` | on | Only landscape hits R2 |
 | Public JPEG size/quality | 1600×900 @ q80 | Smaller objects, faster uploads/downloads |
-| Pi capture interval | **30s** | Less Pi CPU/SD; still fresh for 60s poll |
+| Pi capture interval | **1s** | Nearer-live `/raw.jpg` + `webcam-stream` MJPEG; more CPU/SD. Public R2 still follows pipeline poll (**60s**) |
 | Conditional GET (ETag) | on | Skip download when Pi image unchanged; still re-render public badge/clock |
 | Worker live JPEG `Cache-Control` | **max-age=60, stale-while-revalidate=30** | Matches placeholder Uhrzeit republish (~1 min) |
 | Workers Caching (`cache.enabled`) | **on** | Edge HIT skips Worker invoke + R2 Class B |
@@ -54,7 +54,8 @@ Watch the R2 Free dashboard if you add cameras or lower intervals.
 
 ## Pi behaviour (perf)
 
-- Capture every 30s; pipeline polls every 60s (always a recent frame without capturing every second).
+- Capture every **1s** so LAN MJPEG (`webcam-stream`) and `/raw.jpg` stay nearer-live; pipeline still polls every **60s**, so public R2 overwrite cadence is unchanged (skips when bytes identical).
+- 1s full-sensor stills cost more CPU and SD wear than a 30s interval — raise `capture.interval_seconds` on the Pi if you only need public stills.
 - JPEG quality 88 on full sensor; public downscale happens on the LAN host.
 - Quiet success logs (INFO every N captures).
 - **LAN UI:** do not auto dry-run variant previews; gallery/camera previews use `?w=` thumbs; poll ~30s and pause when the tab is hidden — see [LAN-UI.md](LAN-UI.md) § Performance.

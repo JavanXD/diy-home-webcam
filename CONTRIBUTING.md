@@ -13,9 +13,9 @@ make test
 ./scripts/smoke-local.sh
 ```
 
-Camera tests are in `pi/camera/tests/`. Pipeline tests are in `pi/pipeline/tests/`.
+Camera tests are in `pi/camera/tests/`. Pipeline tests are in `pi/pipeline/tests/`. Stream Extra tests are in `pi/stream/tests/`.
 
-Capture (`:8080`) and the pipeline (`:8090`) stay separate processes. Home Assistant stays a YAML import.
+Capture (`:8080`), the pipeline (`:8090`), and the LAN MJPEG Extra (`:8081`) stay separate processes. Home Assistant stays a YAML import.
 
 ## Add a camera
 

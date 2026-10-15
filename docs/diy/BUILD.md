@@ -110,9 +110,10 @@ That installs:
 |------|------|------------------|
 | `webcam-camera` | 8080 | `/etc/webcam-camera/camera.yaml` (copied once from `pi/camera/config/camera.example.yaml`) |
 | `webcam-pipeline` | 8090 | `/etc/webcam-pipeline/pipeline.yaml` (copied once from `pi/pipeline/config/pipeline.example.yaml`) |
+| `webcam-stream` | 8081 | `/etc/webcam-stream/stream.yaml` (copied once from `pi/stream/config/stream.example.yaml`) — LAN MJPEG Extra for go2rtc |
 | `webcam-setup-ap` | — | Setup Wi-Fi AP when no home Wi-Fi profile exists |
 
-Provision does not overwrite camera/pipeline config files if they already exist.
+Provision does not overwrite camera/pipeline/stream config files if they already exist.
 
 Check:
 
@@ -120,6 +121,7 @@ Check:
 curl -fsS http://127.0.0.1:8080/health
 curl -fsS -o /tmp/cam.jpg http://127.0.0.1:8080/raw.jpg
 curl -fsS http://127.0.0.1:8090/health
+curl -fsS http://127.0.0.1:8081/health
 sudo /opt/home-webcam-pipeline/pi/scripts/webcam-setup-ap.sh status
 ```
 

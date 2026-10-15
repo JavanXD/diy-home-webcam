@@ -4,11 +4,12 @@
 
 1. **`pi/camera`** — Capture appliance on `:8080`. **`GET /raw.jpg`** = always last-good live capture (pipeline acquire + aim/focus; never Wartungsbild). **`GET /feed.jpg`** = optional maintenance-aware path (Wartungsbild when maintenance on). Disk file may still be `data/image.jpg`. No privacy processing or burn-in — overlays live on `:8090`.
 2. **`pi/pipeline`** — Same Raspberry Pi (second systemd unit, `:8090`). Acquires `http://127.0.0.1:8080/raw.jpg`, detects Wartungsbild via `GET /maintenance` (or `/health`), renders variants, serves private images to Home Assistant, publishes public JPEGs to Cloudflare R2. Home Assistant does not run this process.
-3. **`shared/`** — Shared Python used by both services (`lan_ui` design system, `jpeg_util`, version, logging).
-4. **webhosting** — Cloudflare Worker bound to R2. Serves `index.html` and the latest public JPEG. History prefixes are not publicly listed.
-5. **homeassistant** — YAML package for private camera entity and health sensors.
-6. **cameras/** — Declarative per-camera configuration and variant definitions.
-7. **`pi/host/`** — Desired host state (NVMe boot order); apply via `pi/scripts/` — see [PI-HOST.md](PI-HOST.md).
+3. **`pi/stream`** — LAN-only MJPEG Extra (`webcam-stream`, `:8081`). Polls `/raw.jpg?w=…` over HTTP and serves multipart MJPEG for go2rtc / `webrtc-camera`. Does not open the CSI sensor. Uncensored; keep on the home network only.
+4. **`shared/`** — Shared Python used by Pi services (`lan_ui` design system, `jpeg_util`, version, logging).
+5. **webhosting** — Cloudflare Worker bound to R2. Serves `index.html` and the latest public JPEG. History prefixes are not publicly listed.
+6. **homeassistant** — YAML package for private camera entity and health sensors; optional go2rtc live stream examples.
+7. **cameras/** — Declarative per-camera configuration and variant definitions.
+8. **`pi/host/`** — Desired host state (NVMe boot order); apply via `pi/scripts/` — see [PI-HOST.md](PI-HOST.md).
 
 ## Data flow
 
@@ -16,6 +17,7 @@
 Pi capture :8080 /raw.jpg  →  pipeline :8090  →  render private (always live)  →  LAN HTTP (HA)
   (/feed.jpg = optional)                         →  render public (Wartung if maint) →  R2 live/ + history/
                                                                       →  Worker → public HTTPS
+                     └→ stream Extra :8081 /stream.mjpg (LAN MJPEG → go2rtc; uncensored)
 ```
 
 **Public live publish precedence** (fixed R2 / outbox live key only):

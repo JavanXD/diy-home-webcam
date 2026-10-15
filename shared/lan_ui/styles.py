@@ -1012,6 +1012,232 @@ dl.debug-grid dd {
   font-size: 0.82rem;
 }
 
+/* —— System Info gauges —— */
+.gauge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+}
+.gauge-card {
+  background: #eceff3;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-2) var(--space-3);
+  text-align: center;
+}
+.gauge-card.gauge-ok { border-left: 3px solid var(--ok); }
+.gauge-card.gauge-warn { border-left: 3px solid var(--warn); }
+.gauge-card.gauge-bad { border-left: 3px solid var(--err); }
+.gauge-card.gauge-neutral { border-left: 3px solid var(--border-strong); }
+.gauge-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 7.5rem;
+  margin: 0 auto;
+}
+.gauge-track {
+  stroke: rgba(18, 22, 28, 0.12);
+  stroke-width: 8;
+  stroke-linecap: butt;
+}
+.gauge-zone-ok {
+  stroke: var(--ok);
+  stroke-width: 8;
+  stroke-linecap: butt;
+  opacity: 0.85;
+}
+.gauge-zone-warn {
+  stroke: var(--warn);
+  stroke-width: 8;
+  stroke-linecap: butt;
+  opacity: 0.9;
+}
+.gauge-zone-bad {
+  stroke: var(--err);
+  stroke-width: 8;
+  stroke-linecap: butt;
+  opacity: 0.9;
+}
+.gauge-needle {
+  stroke: var(--fg);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.gauge-hub { fill: var(--fg); }
+.gauge-label {
+  margin-top: 0.15rem;
+  font-size: var(--fs-xs);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.gauge-value {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+.gauge-hint {
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--muted);
+  word-break: break-word;
+}
+.unit-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-2) 0 0;
+}
+.unit-pill {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border: 1px solid var(--border);
+  background: var(--neutral-bg);
+}
+.unit-pill.unit-ok {
+  border-color: var(--ok-border);
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+.unit-pill.unit-bad {
+  border-color: var(--err-border);
+  background: var(--err-bg);
+  color: var(--err);
+}
+.unit-pill.unit-neutral { color: var(--muted); }
+
+/* —— Host metrics chart (System Info) —— */
+.metrics-panel {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.metrics-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  align-items: flex-end;
+  margin-bottom: var(--space-2);
+}
+.metrics-subtitle {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--fs-sm);
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.metrics-series {
+  margin-bottom: var(--space-1);
+}
+.metrics-line-temp {
+  stroke: var(--warn);
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.metrics-line-age {
+  stroke: var(--pipe);
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.metrics-line-capture {
+  stroke: var(--cam);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.metrics-line-cycle {
+  stroke: var(--info);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.metrics-line-stream {
+  stroke: var(--brand);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.metrics-line-swap {
+  stroke: var(--muted);
+  stroke-width: 1.25;
+  stroke-dasharray: 2 2;
+}
+.metrics-line-disk {
+  stroke: #5a6470;
+  stroke-width: 1.25;
+}
+.metrics-field {
+  margin: 0;
+  font-weight: 650;
+  font-size: var(--fs-xs);
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+.metrics-field select {
+  display: block;
+  margin-top: 0.15rem;
+  min-width: 5.5rem;
+  max-width: 8rem;
+}
+.metrics-check {
+  margin: 0;
+  align-self: center;
+  font-size: var(--fs-sm);
+}
+.metrics-chart {
+  display: block;
+  width: 100%;
+  max-width: 36rem;
+  height: auto;
+  aspect-ratio: 320 / 120;
+  background: #eceff3;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.metrics-bg { fill: #eceff3; }
+.metrics-grid {
+  stroke: rgba(18, 22, 28, 0.1);
+  stroke-width: 1;
+}
+.metrics-axis {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+}
+.metrics-empty {
+  fill: var(--muted);
+  font-family: var(--font);
+  font-size: 11px;
+}
+.metrics-line-cpu {
+  stroke: var(--pipe);
+  stroke-width: 1.75;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.metrics-line-load {
+  stroke: var(--info);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.metrics-line-mem {
+  stroke: var(--brand);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
 /* —— Recent journal peek (Pipeline home) —— */
 pre.log-peek {
   margin: var(--space-2) 0 0;

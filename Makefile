@@ -6,6 +6,7 @@ help:
 test:
 	cd pi/camera && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt pytest pillow && .venv/bin/pytest -q
 	cd pi/pipeline && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt pytest && .venv/bin/pytest -q
+	cd pi/stream && python3 -m venv .venv && .venv/bin/pip install -q -r requirements.txt pytest pillow && .venv/bin/pytest -q
 
 smoke:
 	./scripts/smoke-local.sh

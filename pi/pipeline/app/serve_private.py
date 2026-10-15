@@ -27,6 +27,7 @@ from .publish_settings import (
 )
 from .path_safety import safe_camera_id, safe_jpeg_filename
 from .wifi_nm import WifiError, network_glance, wifi_connect, wifi_scan, wifi_status
+from .system_info_ui import system_info_ui
 from .system_ops import (
     SystemOpsError,
     collect_system_status,
@@ -210,297 +211,6 @@ def _pipe_home_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
 }})();
 </script>
 """
-    system_card = f"""
-  {lan_ui.banner_slot("sys-msg")}
-  <p class="muted">Home network only. Reboot and shut down affect the whole Pi. Restart webcam services leaves the OS running.</p>
-  {lan_ui.actions_bar(
-      '<button type="button" id="sys-restart" class="primary">Restart webcam services</button>',
-      '<button type="button" id="sys-reboot" class="danger">Reboot Pi</button>',
-      '<button type="button" id="sys-poweroff" class="danger">Shut down Pi</button>',
-  )}
-  <p class="field-help">Restart webcam services: <code>webcam-camera</code>, <code>webcam-pipeline</code>, and <code>nginx</code> when installed. Reboot / shut down use <code>systemctl reboot</code> / <code>poweroff</code>.</p>
-<script>
-(function () {{
-  async function postSystem(path, confirmMsg, busyLabel) {{
-    if (!window.lanUi.confirm(confirmMsg)) return;
-    var btnRestart = document.getElementById("sys-restart");
-    var btnReboot = document.getElementById("sys-reboot");
-    var btnOff = document.getElementById("sys-poweroff");
-    var buttons = [btnRestart, btnReboot, btnOff].filter(Boolean);
-    buttons.forEach(function (b) {{ window.lanUi.setBusy(b, true, busyLabel); }});
-    try {{
-      var res = await window.lanUi.fetchJson(path, {{
-        method: "POST",
-        headers: {{ "Content-Type": "application/json" }},
-        body: JSON.stringify({{ confirm: true }}),
-        timeoutMs: 15000,
-      }});
-      window.lanUi.showBanner(
-        "sys-msg",
-        "warn",
-        res.action === "restart-services" ? "Restarting services" : (res.action === "reboot" ? "Rebooting" : "Shutting down"),
-        res.message || "Accepted"
-      );
-    }} catch (e) {{
-      window.lanUi.showBanner(
-        "sys-msg",
-        "bad",
-        "Request failed",
-        String(e && e.message ? e.message : e)
-      );
-      buttons.forEach(function (b) {{ window.lanUi.setBusy(b, false); }});
-    }}
-  }}
-  var restartBtn = document.getElementById("sys-restart");
-  var rebootBtn = document.getElementById("sys-reboot");
-  var powerBtn = document.getElementById("sys-poweroff");
-  if (restartBtn) {{
-    restartBtn.addEventListener("click", function () {{
-      postSystem(
-        "/system/restart-services",
-        "Restart webcam services now?\\n\\nRestarts webcam-camera, webcam-pipeline, and nginx (if installed). The OS stays up. This page will disconnect for a few seconds.",
-        "Restarting…"
-      );
-    }});
-  }}
-  if (rebootBtn) {{
-    rebootBtn.addEventListener("click", function () {{
-      postSystem(
-        "/system/reboot",
-        "Reboot this Raspberry Pi now?\\n\\nThe whole OS will restart. The webcam will be offline for about a minute.",
-        "Rebooting…"
-      );
-    }});
-  }}
-  if (powerBtn) {{
-    powerBtn.addEventListener("click", function () {{
-      postSystem(
-        "/system/poweroff",
-        "Shut down this Raspberry Pi now?\\n\\nPower will turn off. You must reconnect power (or use the case power button) to bring the webcam back.",
-        "Shutting down…"
-      );
-    }});
-  }}
-}})();
-</script>
-"""
-    health_strip = f"""
-  {lan_ui.status_placeholder("sys-health", "Loading host status…")}
-  <dl class="debug-grid" id="sys-health-grid"></dl>
-  {lan_ui.stale_hint("sys-health-updated")}
-<script>
-(function () {{
-  function row(dl, k, v) {{
-    if (v === undefined || v === null || v === "") return;
-    var dt = document.createElement("dt");
-    dt.textContent = k;
-    var dd = document.createElement("dd");
-    dd.textContent = String(v);
-    dl.appendChild(dt);
-    dl.appendChild(dd);
-  }}
-  function unitLine(units) {{
-    if (!units || !units.length) return "";
-    return units.map(function (u) {{
-      var state = u.installed === false ? "not installed" : (u.active || "?");
-      return (u.name || u.unit || "?") + "=" + state;
-    }}).join(" · ");
-  }}
-  function diskLine(disks) {{
-    if (!disks || !disks.length) return "";
-    return disks.map(function (d) {{
-      var pct = d.free_pct == null ? "?" : (d.free_pct + "% free");
-      return (d.label || d.path || "disk") + " " + pct;
-    }}).join(" · ");
-  }}
-  function publishLine(p) {{
-    if (!p) return "";
-    if (!p.enabled) return "publish off";
-    if (p.last_success_age_seconds == null) return "no successful publish yet";
-    return "last OK " + window.lanUi.formatDuration(p.last_success_age_seconds) + " ago";
-  }}
-  function clockLine(c) {{
-    if (!c) return "";
-    if (c.ntp_synchronized === true) return "NTP OK" + (c.timezone ? " · " + c.timezone : "");
-    if (c.ntp_synchronized === false) return "NTP not synchronized";
-    return "NTP unknown" + (c.timezone ? " · " + c.timezone : "");
-  }}
-  function healthKind(s) {{
-    if (!s) return "warn";
-    var units = s.units || [];
-    var unitsBad = units.some(function (u) {{ return u.installed && !u.ok; }});
-    var diskWarn = (s.disks || []).some(function (d) {{ return d.free_pct != null && d.free_pct < 15; }});
-    var diskBad = (s.disks || []).some(function (d) {{ return d.free_pct != null && d.free_pct < 5; }});
-    var temp = s.temperature_c;
-    var tempWarn = temp != null && temp >= 70;
-    var tempBad = temp != null && temp >= 80;
-    var ntpBad = s.clock && s.clock.ntp_synchronized === false;
-    if (unitsBad || diskBad || tempBad || ntpBad) return "bad";
-    if (diskWarn || tempWarn) return "warn";
-    return "ok";
-  }}
-  async function loadSystemHealth() {{
-    var box = document.getElementById("sys-health");
-    var dl = document.getElementById("sys-health-grid");
-    var stamp = document.getElementById("sys-health-updated");
-    if (!box || !dl) return;
-    try {{
-      var s = await window.lanUi.fetchJson("/system/status");
-      var kind = healthKind(s);
-      var title = kind === "ok" ? "Host OK" : (kind === "bad" ? "Host issues" : "Host warn");
-      var detail = diskLine(s.disks);
-      if (s.temperature_c != null) detail = (detail ? detail + " · " : "") + s.temperature_c + " °C";
-      window.lanUi.banner(box, kind, title, detail || "");
-      dl.innerHTML = "";
-      row(dl, "Disk", diskLine(s.disks));
-      row(dl, "SoC temp", s.temperature_c != null ? (s.temperature_c + " °C") : null);
-      row(dl, "Units", unitLine(s.units));
-      row(dl, "R2 publish", publishLine(s.publish));
-      row(dl, "Clock", clockLine(s.clock));
-      window.lanUi.stampUpdated(stamp, true);
-    }} catch (e) {{
-      window.lanUi.banner(box, "bad", "Host status unreachable", String(e && e.message ? e.message : e));
-      window.lanUi.stampUpdated(stamp, false);
-    }}
-  }}
-  var pollMs = 30000;
-  var timer = null;
-  function tick() {{
-    if (document.hidden) return;
-    loadSystemHealth();
-  }}
-  function startPoll() {{
-    if (timer) return;
-    timer = setInterval(tick, pollMs);
-  }}
-  function stopPoll() {{
-    if (!timer) return;
-    clearInterval(timer);
-    timer = null;
-  }}
-  document.addEventListener("visibilitychange", function () {{
-    if (document.hidden) stopPoll();
-    else {{ tick(); startPoll(); }}
-  }});
-  loadSystemHealth();
-  startPoll();
-}})();
-</script>
-"""
-    network_card = f"""
-  {lan_ui.status_placeholder("sys-net", "Loading network…")}
-  <dl class="debug-grid" id="sys-net-grid"></dl>
-  {lan_ui.stale_hint("sys-net-updated")}
-  <p class="field-help">Join a different Wi‑Fi on <a data-lan-port="8090" data-lan-path="/setup/ui" href="/setup/ui">Setup</a>.</p>
-<script>
-(function () {{
-  function row(dl, k, v) {{
-    if (v === undefined || v === null || v === "") return;
-    var dt = document.createElement("dt");
-    dt.textContent = k;
-    var dd = document.createElement("dd");
-    dd.textContent = String(v);
-    dl.appendChild(dt);
-    dl.appendChild(dd);
-  }}
-  async function loadNet() {{
-    var box = document.getElementById("sys-net");
-    var dl = document.getElementById("sys-net-grid");
-    var stamp = document.getElementById("sys-net-updated");
-    if (!box || !dl) return;
-    try {{
-      var s = await window.lanUi.fetchJson("/system/status");
-      var ifaces = (s.network || []);
-      var up = ifaces.filter(function (i) {{ return i.up; }});
-      var kind = up.length ? "ok" : "warn";
-      var title = up.length ? ("Reachable · " + up.length + " link" + (up.length === 1 ? "" : "s")) : "No link up";
-      var detail = up.map(function (i) {{
-        return (i.type === "wifi" ? "wifi" : "eth") + " " + (i.ipv4 || i.device || "");
-      }}).join(" · ");
-      window.lanUi.banner(box, kind, title, detail || (s.message || ""));
-      dl.innerHTML = "";
-      if (!ifaces.length) {{
-        row(dl, "Note", s.message || "No ethernet/wifi devices reported");
-      }}
-      ifaces.forEach(function (i) {{
-        var label = (i.type === "wifi" ? "Wi‑Fi" : "Ethernet") + " (" + (i.device || "?") + ")";
-        var bits = [];
-        bits.push(i.up ? "up" : (i.state || "down"));
-        if (i.ipv4) bits.push(i.ipv4);
-        if (i.gateway) bits.push("gw " + i.gateway);
-        if (i.type === "wifi" && i.ssid) bits.push(i.ssid);
-        row(dl, label, bits.join(" · "));
-      }});
-      window.lanUi.stampUpdated(stamp, true);
-    }} catch (e) {{
-      window.lanUi.banner(box, "bad", "Network unreachable", String(e && e.message ? e.message : e));
-      window.lanUi.stampUpdated(stamp, false);
-    }}
-  }}
-  var pollMs = 30000;
-  var timer = null;
-  function tick() {{
-    if (document.hidden) return;
-    loadNet();
-  }}
-  function startPoll() {{
-    if (timer) return;
-    timer = setInterval(tick, pollMs);
-  }}
-  function stopPoll() {{
-    if (!timer) return;
-    clearInterval(timer);
-    timer = null;
-  }}
-  document.addEventListener("visibilitychange", function () {{
-    if (document.hidden) stopPoll();
-    else {{ tick(); startPoll(); }}
-  }});
-  loadNet();
-  startPoll();
-}})();
-</script>
-"""
-    logs_card = f"""
-  {lan_ui.banner_slot("sys-logs-msg")}
-  {lan_ui.actions_bar('<button type="button" id="sys-logs-refresh" class="ghost">Refresh logs</button>')}
-  <pre class="log-peek" id="sys-logs" aria-live="polite">Loading recent logs…</pre>
-  <p class="field-help">Last ~40 lines from <code>webcam-camera</code> and <code>webcam-pipeline</code> only (read-only).</p>
-<script>
-(function () {{
-  async function loadLogs() {{
-    var pre = document.getElementById("sys-logs");
-    var btn = document.getElementById("sys-logs-refresh");
-    if (!pre) return;
-    if (btn) window.lanUi.setBusy(btn, true, "Loading…");
-    try {{
-      var res = await window.lanUi.fetchJson("/system/logs?lines=40", {{ timeoutMs: 20000 }});
-      if (res.ok === false) {{
-        window.lanUi.showBanner("sys-logs-msg", "bad", "Logs unavailable", res.error || "journalctl failed");
-        pre.textContent = res.error || "No log output";
-      }} else {{
-        window.lanUi.clearBanner("sys-logs-msg");
-        pre.textContent = res.text || "(no recent journal lines)";
-        pre.scrollTop = pre.scrollHeight;
-      }}
-    }} catch (e) {{
-      window.lanUi.showBanner(
-        "sys-logs-msg",
-        "bad",
-        "Logs unreachable",
-        String(e && e.message ? e.message : e)
-      );
-      pre.textContent = "";
-    }} finally {{
-      if (btn) window.lanUi.setBusy(btn, false);
-    }}
-  }}
-  var btn = document.getElementById("sys-logs-refresh");
-  if (btn) btn.addEventListener("click", loadLogs);
-  loadLogs();
-}})();
-</script>
-"""
     status_card = f"""
   {lan_ui.status_placeholder("pipe-health", "Loading status…")}
   <dl class="debug-grid" id="pipe-debug"></dl>
@@ -567,13 +277,11 @@ def _pipe_home_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
     body = f"""
   {lan_ui.page_header("Pipeline", "Crops, privacy masks, private LAN-only images, and the public livestream schedule — pipeline service only.", title_suffix=" " + lan_ui.pill("8090"), kicker=":8090 · render · publish")}
   {lan_ui.card("Pipeline status", status_card, kind="pipe")}
-  {lan_ui.card("System health", health_strip, kind="pipe")}
   {lan_ui.card("Updates", updates_card, kind="pipe")}
-  {lan_ui.card("Network", network_card, kind="pipe")}
-  {lan_ui.card("Recent logs", logs_card, kind="pipe")}
-  {lan_ui.card("System", system_card, kind="pipe")}
+  <p class="muted">Host health, performance charts, network, logs, and power controls are on <a data-lan-port="8090" data-lan-path="/system/ui" href="/system/ui">System Info</a>.</p>
 """
     return lan_ui.page("Pipeline", body, active="pipeline", pipe_more=pipe_more)
+
 
 
 def _schedule_ui(*, pipe_more: list[dict[str, str]] | None = None) -> str:
@@ -2273,6 +1981,7 @@ def make_handler(
     camera_id = configured[0] if configured else ""
     pipe_more = variant_menu_items(repo_root, camera_id) or None
     pipe_home_ui = _pipe_home_ui(pipe_more=pipe_more)
+    system_info_page = system_info_ui(pipe_more=pipe_more)
     schedule_ui = _schedule_ui(pipe_more=pipe_more)
     variants_ui = _variants_ui(pipe_more=pipe_more)
     setup_page = setup_ui(pipe_more=pipe_more)
@@ -2588,6 +2297,9 @@ def make_handler(
             if path == "/":
                 self._html(pipe_home_ui)
                 return
+            if path == "/system/ui":
+                self._html(system_info_page)
+                return
             if path == "/schedule/ui":
                 self._html(schedule_ui)
                 return
@@ -2727,6 +2439,7 @@ def make_handler(
                 payload["schedule"] = _schedule(_primary_camera()).evaluate().as_dict()
                 payload["schedule_ui"] = "GET /schedule/ui (LAN)"
                 payload["variants_ui"] = "GET /variants/ui (LAN)"
+                payload["system_ui"] = "GET /system/ui (LAN)"
                 payload["public_live_ui"] = "GET /variants/ui (set public live there)"
                 try:
                     payload["public_live"] = PublicLiveSelection(
@@ -2868,6 +2581,7 @@ def make_handler(
                         "POST /system/reboot",
                         "POST /system/poweroff",
                         "POST /system/restart-services",
+                        "GET /system/ui",
                         "GET /system/status",
                         "GET /system/logs",
                         "GET|POST /system/updates",

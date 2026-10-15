@@ -1,0 +1,3 @@
+# LAN MJPEG Extra — pulls frames from webcam-camera over HTTP (no picamera2).
+PyYAML>=6.0.1
+Pillow>=10.0.0

@@ -80,7 +80,7 @@ sudo /opt/home-webcam-pipeline/pi/scripts/fix-data-perms.sh
 
 ## LAN port redirect (`http(s)://home-webcam.local/` or `home-webcam.local/` → `:8080`)
 
-nginx returns **301** to `http://<host>:8080…` (camera appliance). Config: `pi/host/nginx/webcam-port-redirect.conf`. Canonical client URL: WLAN `.150`.
+nginx returns **301** to `http://<host>:8080…` (camera appliance). Config: `pi/host/nginx/webcam-port-redirect.conf`. Prefer a stable WLAN IP (DHCP reservation) or `home-webcam.local`.
 
 ```bash
 ./pi/scripts/sync-to-pi.sh "$TARGET"
@@ -120,7 +120,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 | `lightdm` | Desktop display manager — unused headless |
 | `wayvnc-control` | Wayland VNC helper for desktop |
 | `cups` (+ socket/path) | Printing unused |
-| `bluetooth` | WiFi (`.150`) stays; BT unused |
+| `bluetooth` | WiFi stays; BT unused |
 | `nfs-blkmap`, `rpcbind` (+ socket) | No NFS mounts |
 | `accounts-daemon` | Desktop Accounts Service |
 | `glamor-test`, `rp1-test` | Pi OS display probe oneshots |
@@ -130,7 +130,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 | Unit / stack | Why leave on |
 |--------------|--------------|
 | `avahi-daemon` | `home-webcam.local` mDNS (optional convenience) |
-| `NetworkManager` + `wpa_supplicant` | WLAN `.150` (canonical); eth `.151` only if cable plugged in |
+| `NetworkManager` + `wpa_supplicant` | WLAN primary; eth only if cable plugged in |
 | `ssh`, `nginx`, `webcam-camera`, `webcam-pipeline` | Appliance core |
 | `systemd-timesyncd` | Clock for timestamps / solar schedule |
 | `udisks2` | SD automount under `/media/pi/…` (harmless; useful for fallback disk) |
@@ -182,7 +182,7 @@ ssh -i "$KEY" -o IdentitiesOnly=yes "$TARGET" \
 ### Power-on path (wifi primary)
 
 1. Plug into power (Ethernet optional; day-to-day cable stays unplugged).
-2. NetworkManager autoconnects saved WiFi → DHCP → DNS (Fritz → `.150`).
+2. NetworkManager autoconnects saved WiFi → DHCP → DNS.
 3. `network-online.target` (~seconds after wifi).
 4. `webcam-camera` → `webcam-pipeline` → nginx / avahi.
 5. LAN UI: `http://home-webcam.local:8080/` (`home-webcam.local` optional). Host uptime on Camera / Pipeline home from `/health` (`system_uptime_seconds`).

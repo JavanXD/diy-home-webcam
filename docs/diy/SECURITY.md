@@ -14,15 +14,15 @@ Practical DIY alignment with CRA / radio IoT expectations — **not** certificat
 | Vulnerability disclosure | Private GitHub security advisory only ([new advisory](https://github.com/JavanXD/diy-home-webcam/security/advisories/new)). |
 | Updates | **Appliance code:** opt-in overnight check on Pipeline home → Updates (public `diy-home-webcam`); notify + manual Apply. Or re-flash Releases / rebuild image. **OS packages:** `apt` separately (not the overnight checkbox). DIY project — no commercial support SLA. |
 | Secure defaults | AP off after join; prefer Imager SSH **public key**; password SSH off when keys exist; unique `pi` password on the boot card for emergency console. |
-| No mandatory LAN login | Trusted home network is the boundary for `:8080` / `:8090`. |
+| No mandatory LAN login | Trusted home network is the boundary for `:8080` / `:8090` / `:8081`. |
 
 ## Threat model
 
 | Actor | Assumption | What they can do |
 |-------|------------|------------------|
-| Someone on your home Wi‑Fi / LAN | **Trusted** (same as anyone who can open a browser on the LAN) | Use `:8080` / `:8090` — live frames, variants editor, Setup, reboot/poweroff (with confirm), Wi‑Fi join |
+| Someone on your home Wi‑Fi / LAN | **Trusted** (same as anyone who can open a browser on the LAN) | Use `:8080` / `:8090` / `:8081` — live frames, variants editor, Setup, reboot/poweroff (with confirm), Wi‑Fi join, uncensored MJPEG Extra |
 | Neighbor / passer-by on radio | Untrusted | May see SSID `Webcam-Setup` during first boot; WPA2 password is **device-unique** (boot card / Setup UI), not a published global string |
-| Internet | Untrusted | Must **not** reach `:8080` / `:8090`. May fetch the **public** JPEG (and optional Worker page) if you publish |
+| Internet | Untrusted | Must **not** reach `:8080` / `:8090` / `:8081`. May fetch the **public** JPEG (and optional Worker page) if you publish |
 | Compromised guest device on LAN | Semi-trusted | Same as LAN — treat guest Wi‑Fi isolation / IoT VLAN as your control |
 
 **Trust boundary:** the home network. If you do not trust every device on that LAN, put the Pi on an IoT/guest VLAN or add your own reverse-proxy auth — this project does not ship a LAN password.
@@ -33,6 +33,7 @@ Practical DIY alignment with CRA / radio IoT expectations — **not** certificat
 |---------|----------|-------|
 | Camera `:8080` | LAN (binds `0.0.0.0`) | Capture, `/raw.jpg`, maintenance. No login. |
 | Pipeline `:8090` | LAN (binds `0.0.0.0`) | Private variants, Setup, System power, R2 settings UI. No login. |
+| Stream Extra `:8081` | LAN (binds `0.0.0.0`) | Uncensored downscaled MJPEG for go2rtc. No login. Never publish or port-forward. |
 | Setup AP `Webcam-Setup` | Nearby Wi‑Fi, first boot only | Unique WPA2 PSK in `/boot/firmware/webcam-setup.txt`. Torn down after home Wi‑Fi join; skipped when a home profile / ethernet already exists. |
 | Public JPEG (R2 / S3 / Worker) | Internet (if you enable publish) | Privacy-masked frame only — tune masks before going live. |
 | SSH | As you configure | Prefer key-only; do not expose SSH to the internet without care. |
@@ -42,7 +43,7 @@ Binding to `0.0.0.0` is intentional so the setup AP gateway (`10.42.0.1`) and ev
 ## Recommendations
 
 1. **SSH keys, not passwords** — In Raspberry Pi Imager, enable SSH with your **public** key (required path for Path A/B). On the flashable image, first-boot disables password SSH when `authorized_keys` is present. The unique `pi` password on the boot card is for emergency console only.
-2. **Do not port-forward `:8080` or `:8090`** — Those ports can change privacy masks, maintenance, Wi‑Fi, and power. Public viewers should only see the object store / Worker URL.
+2. **Do not port-forward `:8080`, `:8090`, or `:8081`** — Those ports can change privacy masks, maintenance, Wi‑Fi, and power; `:8081` is the uncensored live Extra. Public viewers should only see the object store / Worker URL.
 3. **Rotate R2 / S3 keys** if a key may have leaked; keep them only in `/etc/webcam-pipeline/env` (mode `640`, `root:webcam`). Never commit keys. The Setup UI shows “secret set”, not the secret.
 4. **After joining home Wi‑Fi** — The Pi tears down `Webcam-Setup` and will not start it again while a home Wi‑Fi profile exists. To force “never AP” (even if you delete Wi‑Fi profiles):  
    `sudo touch /etc/webcam-pipeline/setup-ap.disabled`  
@@ -59,7 +60,7 @@ The DIY repo’s GitHub Actions **CI** includes a **Security scanners** job: git
 
 ## Intentionally not shipped
 
-- **LAN login / basic auth** on `:8080` / `:8090` — decided against; network trust is the control.
+- **LAN login / basic auth** on `:8080` / `:8090` / `:8081` — decided against; network trust is the control.
 - **TLS on the LAN UI** — home DIY complexity vs benefit; use VPN/VLAN if you need encryption on the wire.
 - **Fail2ban / IDS / enterprise hardening** — out of scope for this appliance.
 - **CRA / RED certification** — alignment goals only; not a notified-body assessment.

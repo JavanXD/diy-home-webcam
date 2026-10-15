@@ -26,6 +26,7 @@ class PipelineState:
         self.cameras: dict[str, dict[str, Any]] = {}
         self.last_cycle_at: float | None = None
         self.last_cycle_summary: str | None = None
+        self.last_cycle_duration_seconds: float | None = None
         self.publish_info: dict[str, Any] = {
             "enabled": bool((config.get("publish") or {}).get("enabled")),
             "backend": (config.get("publish") or {}).get("backend"),
@@ -75,17 +76,21 @@ class PipelineState:
         original_path: str | None = None,
         next_steps: list[str] | None = None,
         fail_safe: dict[str, Any] | None = None,
+        duration_seconds: float | None = None,
     ) -> None:
         with self._lock:
             c = self._cam(camera_id)
             now = time.time()
             self.last_cycle_at = now
             self.last_cycle_summary = f"[{camera_id}] {summary}"
+            if duration_seconds is not None:
+                self.last_cycle_duration_seconds = float(duration_seconds)
             c["last_cycle"] = {
                 "at": _iso(now),
                 "ok": ok,
                 "summary": summary,
                 "stages": stages,
+                "duration_seconds": self.last_cycle_duration_seconds,
             }
             c["stages"] = stages
             c["summary"] = summary
@@ -222,6 +227,7 @@ class PipelineState:
                 "system_uptime_seconds": None if sys_up is None else round(sys_up, 3),
                 "last_cycle_at": _iso(self.last_cycle_at),
                 "last_cycle_summary": self.last_cycle_summary,
+                "last_cycle_duration_seconds": self.last_cycle_duration_seconds,
                 "camera_count": len(self.cameras),
                 "configured_cameras": [str(c) for c in (self.config.get("cameras") or []) if c],
                 "publish": dict(self.publish_info),

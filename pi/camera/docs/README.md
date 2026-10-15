@@ -91,7 +91,7 @@ In `camera.yaml` / `/etc/webcam-camera/camera.yaml`:
 | `jpeg_quality` | Applied in picamera2 via RGB→JPEG encode; `-q` for rpicam |
 | `exposure_mode` | `auto` / `off` (AeEnable) |
 | `awb_mode` | `auto` / `off` / named modes when libcamera supports them |
-| `interval_seconds` | Capture loop period |
+| `interval_seconds` | Capture loop period (default **1** for nearer-live `/raw.jpg` + MJPEG; public publish uses pipeline poll) |
 | `live_preview.duration_seconds` | Focus-mode session length before auto-off (default `300` ≈ 5 min) |
 | `live_preview.interval_seconds` | Capture interval while live preview is on (default `0.75`) |
 | `health.auto_maintenance_after_failures` | Consecutive failures before auto Wartungsbild (default `2`; startup no-device is immediate) |

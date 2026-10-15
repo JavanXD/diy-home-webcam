@@ -1,0 +1,37 @@
+# LAN-only Extra: uncensored downscaled MJPEG for go2rtc / Home Assistant.
+# Pulls latest frames from webcam-camera over HTTP — never opens the CSI sensor.
+# Independent of the snapshot capture loop and the privacy pipeline (:8090).
+# Do not port-forward, publish to R2, or expose this stream on the public internet.
+#
+# Provision copies this once to /etc/webcam-stream/stream.yaml.
+
+enabled: true
+
+bind_host: "0.0.0.0"
+bind_port: 8081
+
+source:
+  # Uncensored live capture (never Wartungsbild). Camera applies ?w= downscale.
+  url: "http://127.0.0.1:8080/raw.jpg"
+  width: 960
+  timeout_seconds: 8
+
+stream:
+  # Multipart MJPEG emit rate. Picture freshness follows webcam-camera
+  # capture.interval_seconds (same JPEG is re-emitted until the next capture).
+  fps: 2
+  jpeg_quality: 72
+  boundary: frame
+
+# CCTV-style timestamp burn-in (top-left) on /snapshot.jpg and /stream.mjpg.
+# Uses camera Last-Modified (capture time) so a frozen frame shows a stale clock.
+# Applied before go2rtc ffmpeg→H264, so WebRTC gets the same OSD.
+overlay:
+  enabled: true
+  timezone: Europe/Berlin
+  format: "%d/%m/%Y %H:%M:%S %a"  # rendered uppercase, e.g. 14/10/2026 07:14:29 WED
+  margin: 12
+  font_scale: 0.035
+
+logging:
+  level: INFO
